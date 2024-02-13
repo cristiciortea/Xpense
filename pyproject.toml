@@ -9,7 +9,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 flet = "^0.19.0"
+flet-route = "^0.3.2"
 
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.21.0"
 
 [build-system]
 requires = ["poetry-core"]
