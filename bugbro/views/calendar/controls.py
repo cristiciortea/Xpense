@@ -1,23 +1,23 @@
 import calendar
 import datetime
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 import flet as ft
 
 
-class Calendar:
-    def __init__(self):
-        self.today = datetime.date.today()
-        self.year = self.today.year
-        self.month = self.today.month
-        # self.next_month = self.month + 1
-
-        self.clicks: List = []
-        self.long_presses: List = []
+class CalendarBuilder:
+    def __init__(self, start_date: Optional[datetime.date] = None):
+        if start_date is None:
+            self.start_date = datetime.date.today()
+        else:
+            self.start_date = start_date
+        self.year = self.start_date.year
+        self.month = self.start_date.month
 
         self.color = ft.colors.BLUE
+        self.long_presses = []
+        self._date_clicks: List[ft.UserControl] = []
 
-        self.selected_date = None
         self.calendar_grid: ft.Column | None = None
 
     def build_calendar_grid(self) -> None:
@@ -29,23 +29,28 @@ class Calendar:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-    def build_calendar(self) -> None:
+    def reset_calendar_grid_controls(self) -> None:
         self.calendar_grid.controls = []
-        year = self.year
-        month = self.month
 
-        month_label = ft.Text(
-            f"{calendar.month_name[month]} {year}",
+    def get_month_label(self) -> ft.Text:
+        return ft.Text(
+            f"{calendar.month_name[self.month]} {self.year}",
             size=14,
             weight=ft.FontWeight.BOLD,
         )
+
+    @staticmethod
+    def get_basic_month_grid(month_label: ft.Text) -> ft.Column:
         month_grid = ft.Column(alignment=ft.MainAxisAlignment.CENTER)
         month_grid.controls.append(ft.Row(
             alignment=ft.MainAxisAlignment.START,
             controls=[month_label]
         ))
+        return month_grid
 
-        weekday_labels = [
+    @staticmethod
+    def get_weekday_labels() -> List[ft.Container]:
+        return [
             ft.Container(
                 width=28,
                 height=28,
@@ -57,10 +62,29 @@ class Calendar:
                 )
             ) for weekday in tuple(calendar.day_abbr)
         ]
+
+    def build_calendar(self) -> None:
+        self.build_calendar_grid()
+        self.reset_calendar_grid_controls()
+
+        # This is the label that goes at the top of the
+        # weekday labels.
+        month_label = self.get_month_label()
+        # The main grid on which the calendar is built.
+        month_grid = self.get_basic_month_grid(month_label)
+
+        weekday_labels = self.get_weekday_labels()
+        # Build the weekday row which is singular, and it looks like
+        # Mon Tue Wed Thu Fri Sat Sun.
         weekday_row = ft.Row(controls=weekday_labels)
+
+        # Add the weekday row into the main grid.
         month_grid.controls.append(weekday_row)
+        # Add the main grid to the root calendar grid.
         self.calendar_grid.controls = [month_grid]
 
+        # Add the week containers with each day of the month
+        # to the root calendar grid.
         month_matrix = calendar.monthcalendar(self.year, self.month)
         for week in month_matrix:
             week_container = ft.Row()
@@ -69,16 +93,54 @@ class Calendar:
                 day_label = ft.Text(str(day), size=12) if day != 0 else None
                 day_container.content = day_label
 
-                if day == self.today.day and month == self.today.month and year == self.today.year:
+                if (
+                        day == self.start_date.day and
+                        self.month == self.start_date.month and
+                        self.year == self.start_date.year
+                ):
                     day_container.bgcolor = ft.colors.TEAL_700
 
                 week_container.controls.append(day_container)
             self.calendar_grid.controls.append(week_container)
 
     def build(self) -> ft.Column:
-        self.build_calendar_grid()
         self.build_calendar()
         return self.calendar_grid
+
+    def change_month(self, shift: int) -> None:
+        if isinstance(shift, int):
+            raise TypeError("Variable shift must be an integer!")
+        if shift >= 0:
+            self.month = min(self.month + shift, 12)
+        elif shift < 0:
+            self.month = max(self.month + shift, 1)
+        self.build_calendar()
+        self.calendar_grid.update()
+
+    def _click_date(self, event: ft.ControlEvent) -> None:
+        clicked_date = event.control
+
+        # Determine color based on the date
+        def target_color(date):
+            is_current_date = int(date.content.value) == self.start_date.day
+            return ft.colors.TEAL_700 if is_current_date else ft.colors.WHITE
+
+        # Toggle or set color for clicked date
+        if self._date_clicks and clicked_date == self._date_clicks[0]:
+            # Toggle if same date clicked again
+            new_color = ft.colors.BLUE_600 if clicked_date.bgcolor != ft.colors.BLUE_600 else target_color(clicked_date)
+        else:
+            # Reset previous date's color if different date clicked
+            if self._date_clicks:
+                self._date_clicks[0].bgcolor = target_color(self._date_clicks[0])
+                self._date_clicks[0].update()
+
+            new_color = ft.colors.BLUE_600
+            # Update or set the clicked date in the list
+            self._date_clicks = [clicked_date]
+
+        clicked_date.bgcolor = new_color
+        clicked_date.update()
 
     def _get_day_container(self, day: int) -> ft.Container:
         if day == 0:
@@ -92,11 +154,128 @@ class Calendar:
                 height=28,
                 border=ft.border.all(0.5, ft.colors.BLACK54),
                 alignment=ft.alignment.center,
-                data=self.today,
-                # on_click=lambda event: self.show_date(event)
-                animate=400
+                data=self.start_date,
+                on_click=lambda event: self._click_date(event),
+                animate=150
             )
 
 
+class PaginationButton:
+    def __init__(self, text: str, func: Callable):
+        self.text = text
+        self.func = func
+
+    def build(self) -> ft.IconButton:
+        return ft.IconButton(
+            content=ft.Text(self.text, size=8, weight=ft.FontWeight.BOLD),
+            width=56,
+            height=28,
+            on_click=self.func,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=6),
+                bgcolor=ft.colors.TEAL_600
+            )
+        )
+
+
+class CalendarNavigator:
+    def __init__(self, calendar_builder: CalendarBuilder):
+        self.calendar_builder = calendar_builder
+        self.calendar_grid = self.calendar_builder.build()
+
+        self.today = ft.Text(
+            value=datetime.date.today().strftime("%B %d, %Y"),
+            width=260,
+            size=13,
+            color=ft.colors.BLACK54,
+            weight=ft.FontWeight.W_400
+        )
+
+        self.btn_container: ft.Row | None = None
+        self.calendar: ft.Container | None = None
+
+    def build_button_container(self) -> ft.Row:
+        if self.btn_container is None:
+            previous_button = PaginationButton("<", lambda event: self.calendar_builder.change_month(-1)).build()
+            next_button = PaginationButton(">", lambda event: self.calendar_builder.change_month(1)).build()
+            self.btn_container = ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                controls=[
+                    previous_button,
+                    next_button
+                ]
+            )
+        return self.btn_container
+
+    def build_calendar_container(self) -> ft.Container:
+        if self.calendar is None:
+            self.build_button_container()
+            self.calendar = ft.Container(
+                width=320,
+                height=45,
+                bgcolor=ft.colors.BLUE_900,
+                border_radius=8,
+                animate=300,
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                alignment=ft.alignment.center,
+                content=ft.Column(
+                    alignment=ft.MainAxisAlignment.START,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Divider(height=60, color=ft.colors.TRANSPARENT),
+                        self.calendar_grid,
+                        ft.Divider(height=60, color=ft.colors.TRANSPARENT),
+                        self.btn_container
+                    ]
+                )
+            )
+        return self.calendar
+
+    def _toggle_calendar_expansion(self, _: ft.ControlEvent) -> None:
+        if self.calendar.height == 45:
+            self.calendar.height = 450
+        else:
+            self.calendar.height = 45
+        self.calendar.update()
+
+    def get_calendar_header(self):
+        return ft.Container(
+            on_click=lambda event: self._toggle_calendar_expansion(event),
+            width=320,
+            height=45,
+            border_radius=8,
+            bgcolor=ft.colors.BLUE_900,
+            padding=ft.padding.only(left=15, right=5),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    self.today,
+                    ft.Container(
+                        width=32,
+                        height=32,
+                        border=ft.border.only(left=ft.BorderSide(0.9, ft.colors.BLACK26)),
+                        alignment=ft.alignment.center,
+                        content=ft.Icon(
+                            name=ft.icons.CALENDAR_MONTH_SHARP,
+                            size=15,
+                            opacity=0.65
+                        )
+                    )
+                ]
+            )
+        )
+
+    def build(self) -> ft.Stack:
+        self.build_calendar_container()
+        return ft.Stack(
+            width=320,
+            controls=[
+                self.calendar,
+                self.get_calendar_header()
+            ]
+        )
+
+
 def get_calendar_controls() -> List[ft.Control]:
-    return [Calendar().build()]
+    return [CalendarBuilder().build(), ]

@@ -25,7 +25,9 @@ def main(page: ft.Page):
 
     # Routing.
     flet_route.Routing(page, app_routes=app_routes, appbar=app_bar, navigation_bar=navigation_bar)
-    page.go(page.route)
+    # page.go(page.route)
+    page.go("/calendar")
+    page.update()
 
 
 if __name__ == "__main__":
