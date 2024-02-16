@@ -1,40 +1,43 @@
 import calendar
 import datetime
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Tuple
 
 import flet as ft
 
+from bugbro.utilities.calendar import get_sign
 from bugbro.views.calendar.components import get_header_current_day_button, get_header_calendar_icon
 
 
 class CalendarBuilder:
     def __init__(self, start_date: Optional[datetime.date] = None):
         if start_date is None:
-            self.start_date = datetime.date.today()
+            self._start_date = datetime.date.today()
         else:
-            self.start_date = start_date
-        self._year = self.start_date.year
-        self._month = self.start_date.month
+            self._start_date = start_date
+        self._current_year = self._start_date.year
+        self._current_year_backup = self._start_date.year
+        self._current_month = self._start_date.month
+        self._current_month_backup = self._start_date.month
 
         self._date_clicks: List[ft.UserControl] = []
 
-        self.calendar_grid: ft.Column | None = None
+        self._calendar_grid: ft.Column | None = None
 
     def build_calendar_grid(self) -> None:
-        if self.calendar_grid is not None:
+        if self._calendar_grid is not None:
             return
-        self.calendar_grid = ft.Column(
+        self._calendar_grid = ft.Column(
             wrap=True,
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
     def _reset_calendar_grid_controls(self) -> None:
-        self.calendar_grid.controls = []
+        self._calendar_grid.controls = []
 
     def _get_month_label(self) -> ft.Text:
         return ft.Text(
-            f"{calendar.month_name[self._month]} {self._year}",
+            f"{calendar.month_name[self._current_month]} {self._current_year}",
             size=14,
             weight=ft.FontWeight.BOLD,
         )
@@ -81,11 +84,11 @@ class CalendarBuilder:
         # Add the weekday row into the main grid.
         month_grid.controls.append(weekday_row)
         # Add the main grid to the root calendar grid.
-        self.calendar_grid.controls = [month_grid]
+        self._calendar_grid.controls = [month_grid]
 
         # Add the week containers with each day of the month
         # to the root calendar grid.
-        month_matrix = calendar.monthcalendar(self._year, self._month)
+        month_matrix = calendar.monthcalendar(self._current_year, self._current_month)
         for week in month_matrix:
             week_container = ft.Row()
             for day in week:
@@ -94,44 +97,85 @@ class CalendarBuilder:
                 day_container.content = day_label
 
                 if (
-                        day == self.start_date.day and
-                        self._month == self.start_date.month and
-                        self._year == self.start_date.year
+                        day == self._start_date.day and
+                        self._current_month == self._start_date.month and
+                        self._current_year == self._start_date.year
                 ):
                     day_container.bgcolor = ft.colors.TEAL_700
 
                 week_container.controls.append(day_container)
-            self.calendar_grid.controls.append(week_container)
+            self._calendar_grid.controls.append(week_container)
 
     def build(self) -> ft.Column:
         self.build_calendar()
-        return self.calendar_grid
+        return self._calendar_grid
 
-    def reset_calendar(self):
-        self.build_calendar()
-        self.calendar_grid.update()
-        self._date_clicks = []
+    def _sync_current_dates(self) -> None:
+        self._current_year_backup = self._current_year
+        self._current_month_backup = self._current_month
 
-    def change_month(self, shift: int) -> None:
-        if not isinstance(shift, int):
-            raise TypeError("Variable shift must be an integer!")
-        if shift >= 0:
-            self._month = min(self._month + shift, 12)
-        elif shift < 0:
-            self._month = max(self._month + shift, 1)
+    def _calendar_needs_reset(self) -> bool:
+        return self._current_year != self._current_year_backup or self._current_month != self._current_month_backup
+
+    def reset_calendar(self) -> None:
+        if self._calendar_needs_reset():
+            self.build_calendar()
+            self._calendar_grid.update()
+            self._date_clicks = []
+            self._sync_current_dates()
+
+    @staticmethod
+    def _get_relative_delta(months: int) -> Tuple[int, int]:
+        if not isinstance(months, int):
+            raise TypeError("months should be integers.")
+        sign = get_sign(months)
+        div, mod = divmod(months * sign, 12)
+        relative_months = mod * sign
+        relative_years = div * sign
+        return relative_months, relative_years
+
+    def shift(self, years: Optional[int] = 0, months: Optional[int] = 0) -> None:
+        if not isinstance(years, int) or not isinstance(months, int):
+            raise TypeError("years and months should be integers.")
+
+        if abs(months) > 11:
+            relative_months, relative_years = self._get_relative_delta(months)
+            months = relative_months
+            years += relative_years
+
+        if months:
+            self.set_current_month(self._current_month + months)
+
+        if years:
+            self.set_current_year(self._current_year + years)
+
         self.reset_calendar()
 
-    def set_month(self, month: int) -> None:
+    def set_current_month(self, month: int) -> None:
         if 1 <= month <= 12:
-            self._month = month
+            self._current_month = month
+        elif month > 12 or month <= 0:
+            relative_months, relative_years = self._get_relative_delta(month)
+            self.set_current_month(relative_months if relative_months != 0 else 12)
+            relative_years = relative_years if relative_years != 0 else -1
+            self.set_current_year(self._current_year + relative_years)
         self.reset_calendar()
+
+    def set_current_year(self, year: int) -> None:
+        if year > 0:
+            self._current_year = year
+        self.reset_calendar()
+
+    def go_today(self):
+        self.set_current_month(self._start_date.month)
+        self.set_current_year(self._start_date.year)
 
     def _click_date(self, event: ft.ControlEvent) -> None:
         clicked_date = event.control
 
         # Determine color based on the date
         def target_color(date):
-            is_current_date = int(date.content.value) == self.start_date.day
+            is_current_date = int(date.content.value) == self._start_date.day
             return ft.colors.TEAL_700 if is_current_date else ft.colors.WHITE
 
         # Toggle or set color for clicked date
@@ -163,7 +207,7 @@ class CalendarBuilder:
                 height=28,
                 border=ft.border.all(0.5, ft.colors.BLACK54),
                 alignment=ft.alignment.center,
-                data=self.start_date,
+                data=self._start_date,
                 on_click=lambda event: self._click_date(event),
                 animate=150
             )
@@ -217,8 +261,14 @@ class CalendarNavigator:
 
     def build_button_container(self) -> ft.Row:
         if self.btn_container is None:
-            before_button = PaginationButton("before", lambda event: self.calendar_builder.change_month(-1)).build()
-            next_button = PaginationButton("next", lambda event: self.calendar_builder.change_month(1)).build()
+            before_button = PaginationButton(
+                "before",
+                lambda event: self.calendar_builder.shift(months=-1)
+            ).build()
+            next_button = PaginationButton(
+                "next",
+                lambda event: self.calendar_builder.shift(months=1)
+            ).build()
             self.btn_container = ft.Row(
                 alignment=ft.MainAxisAlignment.CENTER,
                 controls=[
@@ -281,7 +331,7 @@ class CalendarNavigator:
                     ),
                     get_header_current_day_button(
                         self.start_date.day,
-                        lambda _: self.calendar_builder.set_month(self.start_date.month)
+                        lambda _: self.calendar_builder.go_today()
                     ),
                     get_header_calendar_icon()
                 ]
@@ -291,7 +341,8 @@ class CalendarNavigator:
     def build(self) -> ft.Stack:
         self.build_calendar_container()
         return ft.Stack(
-            width=320,
+            width=400,
+            height=700,
             controls=[
                 self.calendar,
                 self.get_calendar_header(),
@@ -301,5 +352,5 @@ class CalendarNavigator:
 
 def get_calendar_controls() -> List[ft.Control]:
     return [
-        CalendarNavigator().build(),
+        CalendarNavigator().build()
     ]
