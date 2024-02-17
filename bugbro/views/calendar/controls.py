@@ -365,7 +365,7 @@ class CalendarNavigator:
         )
 
 
-def get_calendar_controls(page: ft.Page) -> List[ft.Control]:
+def get_calendar_controls(page: ft.Page, start_date: datetime.date) -> List[ft.Control]:
     return [
-        CalendarNavigator(page).build()
+        CalendarNavigator(page, start_date).build()
     ]

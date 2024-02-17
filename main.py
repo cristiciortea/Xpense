@@ -1,3 +1,6 @@
+import datetime
+import pathlib
+
 import flet as ft
 import flet_route
 
@@ -18,6 +21,9 @@ def main(page: ft.Page):
     page.window_height = 700
     # page.window_frameless = True
 
+    # Common variables.
+    current_date = datetime.date.today()
+
     # Common layout.
     navigator = get_navigator(page)
 
@@ -27,11 +33,11 @@ def main(page: ft.Page):
     page.navigation_bar = navigation_bar
 
     # Build application views.
-    flet_route_main_view = get_view(route_url="/", controls=get_household_controls())
+    flet_route_main_view = get_view(route_url="/", controls=get_household_controls(current_date))
     flet_route_household_view = get_view(route_url=f"/{Routes.HOUSEHOLD.value.lower()}",
-                                         controls=get_household_controls())
+                                         controls=get_household_controls(current_date))
     flet_route_calendar_view = get_view(route_url=f"/{Routes.CALENDAR.value.lower()}",
-                                        controls=get_calendar_controls(page))
+                                        controls=get_calendar_controls(page, current_date))
 
     # Build application routing.
     index_router = flet_route.path(
@@ -59,10 +65,9 @@ def main(page: ft.Page):
     ]
     flet_route.Routing(page, app_routes=app_routes, appbar=app_bar, navigation_bar=navigation_bar)
 
-    # page.go(page.route)
-    page.go("/calendar")
+    page.go(page.route)
     page.update()
 
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.app(target=main, assets_dir="bugbro/assets/")
