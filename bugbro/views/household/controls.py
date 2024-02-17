@@ -1,9 +1,10 @@
 import calendar
 import datetime
-from typing import List
+from typing import List, Optional
 
 import flet as ft
 
+from bugbro.types import DataAggregation, Routes
 from bugbro.views.household.action_button import get_action_button
 
 
@@ -160,11 +161,10 @@ class OverviewSection:
             spacing=0,
         )
 
-    def _get_main_container(self) -> ft.Container:
+    def get(self) -> ft.Container:
         return ft.Container(
             height=120,
             bgcolor=ft.colors.SURFACE_VARIANT,
-            expand=True,
             theme=ft.Theme(color_scheme_seed=ft.colors.BLUE_50),
             theme_mode=ft.ThemeMode.LIGHT,
             gradient=ft.LinearGradient(
@@ -175,58 +175,53 @@ class OverviewSection:
             content=self._get_main_row()
         )
 
-    def get(self) -> ft.Row:
-        return ft.Row(
-            alignment=ft.alignment.top_center,
-            height=120,
-            controls=[
-                self._get_main_container()
-            ],
-            spacing=0,
-        )
-
 
 class DateSection:
-    def __init__(self, current_date: datetime.date):
-        self._date = current_date
+    def __init__(
+            self,
+            current_date: datetime.date,
+            data_aggregation: ft.Ref[ft.Text]
+    ):
+        self._current_date = current_date
 
-    def _get_month_name_container(self) -> ft.Container:
+        self._data_aggregation = data_aggregation
+        self._data_aggregation_text = ft.Text(ref=self._data_aggregation,
+                                              text_align=ft.TextAlign.CENTER,
+                                              size=13,
+                                              weight=ft.FontWeight.BOLD)
+        self._data_aggregation.current.value = DataAggregation.MONTHLY.value
+
+    def _get_data_aggregation_label_container(self) -> ft.Container:
+        month_name = calendar.month_name[self._current_date.month].upper()
+        year = self._current_date.year
         return ft.Container(
-            content=ft.Text(value=calendar.month_name[self._date.month], text_align=ft.TextAlign.CENTER),
+            content=ft.Text(value=f"{month_name} {year}",
+                            text_align=ft.TextAlign.CENTER,
+                            weight=ft.FontWeight.BOLD,
+                            size=13),
             alignment=ft.alignment.center
         )
 
-    def _get_pop_menu_button_container(self) -> ft.Column:
-        # return ft.Container(
-        #     expand=True,
-        #     content=ft.Column(
-        #         controls=[ft.PopupMenuButton(
-        #             icon=ft.icons.ARROW_DROP_DOWN,
-        #         )],
-        #         alignment=ft.MainAxisAlignment.START,
-        #         horizontal_alignment=ft.alignment.center,
-        #     )
-        # )
-        return ft.Column(
-            [
-                ft.Container(
-                    content=ft.Column(
-                        alignment=ft.MainAxisAlignment.START,
-                        horizontal_alignment=ft.alignment.center,
-                    ),
-                    bgcolor=ft.colors.AMBER_100,
-                    height=10,
-                ),
+    def _get_pop_menu_button(self) -> ft.PopupMenuButton:
+        def change_pop_menu(event: ft.ControlEvent):
+            text = event.control.text
+            self._data_aggregation.current.value = DataAggregation(text).value
+            self._data_aggregation_text.value = DataAggregation(text).value
+            self._data_aggregation_text.update()
+
+        return ft.PopupMenuButton(
+            icon=ft.icons.ARROW_DROP_DOWN,
+            items=[
+                ft.PopupMenuItem(text=DataAggregation.MONTHLY.value, on_click=change_pop_menu),
+                ft.PopupMenuItem(text=DataAggregation.YEARLY.value, on_click=change_pop_menu),
+                ft.PopupMenuItem(text=DataAggregation.WEEKLY.value, on_click=change_pop_menu),
             ],
-            alignment=ft.MainAxisAlignment.START,
-            horizontal_alignment=ft.alignment.center,
         )
 
-    def _get_main_container(self) -> ft.Container:
+    def get(self) -> ft.Container:
         return ft.Container(
             alignment=ft.alignment.top_left,
             height=70,
-            expand=True,
             border=ft.border.only(
                 top=ft.BorderSide(0.9, ft.colors.BLACK),
                 bottom=ft.BorderSide(0.9, ft.colors.BLACK)
@@ -237,34 +232,99 @@ class DateSection:
                 controls=[
                     ft.Row(
                         spacing=0,
-                        expand=True,
-                        height=25,
                         controls=[
-                            self._get_pop_menu_button_container()
+                            self._data_aggregation_text,
+                            self._get_pop_menu_button()
                         ],
-                    ),
-                    ft.Row(
-                        spacing=0,
-                        alignment=ft.alignment.center_left,
+                        alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls=[self._get_month_name_container()]
+                    ),
+                    ft.Container(
+                        content=ft.Row(
+                            spacing=0,
+                            alignment=ft.MainAxisAlignment.START,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            controls=[self._get_data_aggregation_label_container()],
+                        ),
+                        padding=ft.padding.only(left=20)
                     )
                 ]
             ),
         )
 
-    def get(self) -> ft.Row:
-        return ft.Row(
-            height=70,
-            alignment=ft.alignment.top_center,
-            controls=[
-                self._get_main_container()
+
+class TabsSection:
+    def _get_tabs(self) -> ft.Tabs:
+        return ft.Tabs(
+            selected_index=0,
+            animation_duration=150,
+            expand=0,
+            tabs=[
+                ft.Tab(
+                    text="Income",
+                ),
+                ft.Tab(
+                    text="Expense",
+                ),
+                ft.Tab(
+                    text="Allocations",
+                ),
             ],
-            spacing=0,
+            top=True,
+            tab_alignment=ft.TabAlignment.FILL
+        )
+
+    def get(self) -> ft.Container:
+        return ft.Container(
+            alignment=ft.alignment.top_left,
+            height=70,
+            bgcolor=ft.colors.TRANSPARENT,
+            content=self._get_tabs()
         )
 
 
-def get_main_container(current_date: datetime.date) -> ft.Container:
+class FloatingButtonSection:
+    def __init__(self, page: ft.Page):
+        self._page = page
+        self._view = ft.View(
+            controls=[
+                ft.Text("ABC"),
+                ft.IconButton(
+                    icon=ft.icons.ARROW_LEFT,
+                    on_click=lambda _: self._click_go_back_button()
+                )
+            ]
+        )
+
+    def _click_go_back_button(self):
+        self._page.views.pop()
+        self._page.update()
+
+    def _click_floating_button(self):
+        self._page.views.append(self._view)
+        self._page.update()
+
+    def _get_button(self) -> ft.FloatingActionButton:
+        return ft.FloatingActionButton(
+            content=ft.Icon(ft.icons.ADD),
+            bgcolor=ft.colors.AMBER_300,
+            shape=ft.RoundedRectangleBorder(radius=20),
+            scale=0.9,
+            on_click=lambda _: self._click_floating_button()
+        )
+
+    def get(self) -> ft.Container:
+        return ft.Container(
+            alignment=ft.alignment.bottom_right,
+            bgcolor=ft.colors.TRANSPARENT,
+            content=self._get_button(),
+            expand=True,
+            padding=ft.padding.only(right=15, bottom=15)
+        )
+
+
+def get_main_container(current_date: datetime.date, data_aggregation: ft.Ref[ft.Text],
+                       page: ft.Page) -> ft.Container:
     return ft.Container(
         alignment=ft.alignment.top_center,
         expand=True,
@@ -273,7 +333,9 @@ def get_main_container(current_date: datetime.date) -> ft.Container:
         content=ft.Column(
             controls=[
                 OverviewSection().get(),
-                DateSection(current_date).get()
+                DateSection(current_date, data_aggregation).get(),
+                TabsSection().get(),
+                FloatingButtonSection(page).get(),
             ],
             expand=True,
             alignment=ft.MainAxisAlignment.START,
@@ -282,5 +344,7 @@ def get_main_container(current_date: datetime.date) -> ft.Container:
     )
 
 
-def get_household_controls(current_date: datetime.date) -> List[ft.Control]:
-    return [get_main_container(current_date)]
+def get_household_controls(
+        current_date: datetime.date, data_aggregation: ft.Ref[ft.Text], page: ft.Page
+) -> List[ft.Control]:
+    return [get_main_container(current_date, data_aggregation, page)]
