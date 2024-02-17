@@ -13,13 +13,8 @@ def get_view(route_url: str, controls: Optional[list[ft.Control]] = None) -> fle
         return ft.View(
             route=route_url,
             controls=controls,
+            vertical_alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
     return get_main_view
-
-
-flet_route_main_view = get_view(route_url="/", controls=get_household_controls())
-flet_route_household_view = get_view(route_url=f"/{Routes.HOUSEHOLD.value.lower()}",
-                                     controls=get_household_controls())
-flet_route_calendar_view = get_view(route_url=f"/{Routes.CALENDAR.value.lower()}",
-                                    controls=get_calendar_controls())

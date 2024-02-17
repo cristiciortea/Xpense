@@ -1,6 +1,9 @@
+import datetime
 from typing import Callable
 
 import flet as ft
+
+from bugbro.utilities.calendar import convert_into_datetime
 
 
 def get_header_current_day_button(current_day: int, func: Callable) -> ft.TextButton:
@@ -25,7 +28,13 @@ def get_header_current_day_button(current_day: int, func: Callable) -> ft.TextBu
     )
 
 
-def get_header_calendar_icon() -> ft.Container:
+def get_header_calendar_icon(page: ft.Page, start_date: datetime.date,
+                             on_date_change: Callable[[datetime.datetime], None]) -> ft.Container:
+    date_picker = ft.DatePicker(
+        on_change=lambda _: on_date_change(date_picker.value),
+        first_date=datetime.datetime.combine(start_date, datetime.time()),
+    )
+    page.overlay.append(date_picker)
     return ft.Container(
         width=32,
         height=32,
@@ -34,5 +43,6 @@ def get_header_calendar_icon() -> ft.Container:
             name=ft.icons.CALENDAR_MONTH_SHARP,
             size=15,
             opacity=0.65
-        )
+        ),
+        on_click=lambda _: date_picker.pick_date()
     )

@@ -170,6 +170,16 @@ class CalendarBuilder:
         self.set_current_month(self._start_date.month)
         self.set_current_year(self._start_date.year)
 
+    def pick_date(self, target_date: datetime.datetime) -> None:
+        self.set_current_month(target_date.month)
+        self.set_current_year(target_date.year)
+
+        for week_control in self._calendar_grid.controls:
+            for day_control in week_control.controls:
+                if day_control.data == target_date.day:
+                    day_control: ft.Container
+                    self._click_date(ft.ControlEvent(control=day_control, target="", name="", data="", page=""))
+
     def _click_date(self, event: ft.ControlEvent) -> None:
         clicked_date = event.control
 
@@ -207,7 +217,7 @@ class CalendarBuilder:
                 height=28,
                 border=ft.border.all(0.5, ft.colors.BLACK54),
                 alignment=ft.alignment.center,
-                data=self._start_date,
+                data=day,
                 on_click=lambda event: self._click_date(event),
                 animate=150
             )
@@ -239,7 +249,7 @@ class PaginationButton:
 
 
 class CalendarNavigator:
-    def __init__(self, start_date: Optional[datetime.date] = None):
+    def __init__(self, page: ft.Page, start_date: Optional[datetime.date] = None):
         if start_date is None:
             self.start_date = datetime.date.today()
         else:
@@ -258,6 +268,8 @@ class CalendarNavigator:
 
         self.btn_container: ft.Row | None = None
         self.calendar: ft.Container | None = None
+
+        self.page = page
 
     def build_button_container(self) -> ft.Row:
         if self.btn_container is None:
@@ -333,7 +345,7 @@ class CalendarNavigator:
                         self.start_date.day,
                         lambda _: self.calendar_builder.go_today()
                     ),
-                    get_header_calendar_icon()
+                    get_header_calendar_icon(self.page, self.start_date, self.calendar_builder.pick_date)
                 ]
             ),
         )
@@ -350,7 +362,7 @@ class CalendarNavigator:
         )
 
 
-def get_calendar_controls() -> List[ft.Control]:
+def get_calendar_controls(page: ft.Page) -> List[ft.Control]:
     return [
-        CalendarNavigator().build()
+        CalendarNavigator(page).build()
     ]
