@@ -166,19 +166,22 @@ class CalendarBuilder:
             self._current_year = year
         self.reset_calendar()
 
-    def go_today(self):
-        self.set_current_month(self._start_date.month)
+    def go_today(self) -> None:
         self.set_current_year(self._start_date.year)
+        self.set_current_month(self._start_date.month)
+        self.highlight_day(self._start_date.day)
+
+    def highlight_day(self, target_day: int) -> None:
+        for week_control in self._calendar_grid.controls:
+            for day_control in week_control.controls:
+                if day_control.data == target_day:
+                    day_control: ft.Container
+                    self._click_date(ft.ControlEvent(control=day_control, target="", name="", data="", page=""))
 
     def pick_date(self, target_date: datetime.datetime) -> None:
         self.set_current_month(target_date.month)
         self.set_current_year(target_date.year)
-
-        for week_control in self._calendar_grid.controls:
-            for day_control in week_control.controls:
-                if day_control.data == target_date.day:
-                    day_control: ft.Container
-                    self._click_date(ft.ControlEvent(control=day_control, target="", name="", data="", page=""))
+        self.highlight_day(target_date.day)
 
     def _click_date(self, event: ft.ControlEvent) -> None:
         clicked_date = event.control
