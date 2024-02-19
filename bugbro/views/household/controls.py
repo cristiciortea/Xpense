@@ -6,6 +6,7 @@ import flet as ft
 
 from bugbro.types import DataAggregation, Routes
 from bugbro.views.household.action_button import get_action_button
+from bugbro.views.household.transactions_view import get_transactions_view
 
 
 def get_household_container() -> ft.Container:
@@ -284,17 +285,11 @@ class TabsSection:
 
 
 class FloatingButtonSection:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, current_date: datetime.date):
         self._page = page
-        self._view = ft.View(
-            controls=[
-                ft.Text("ABC"),
-                ft.IconButton(
-                    icon=ft.icons.ARROW_LEFT,
-                    on_click=lambda _: self._click_go_back_button()
-                )
-            ]
-        )
+        self._current_date = current_date
+        self._view = get_transactions_view(self._page, back_button_callable=lambda _: self._click_go_back_button(),
+                                           current_date=current_date)
 
     def _click_go_back_button(self):
         self._page.views.pop()
@@ -335,7 +330,7 @@ def get_main_container(current_date: datetime.date, data_aggregation: ft.Ref[ft.
                 OverviewSection().get(),
                 DateSection(current_date, data_aggregation).get(),
                 TabsSection().get(),
-                FloatingButtonSection(page).get(),
+                FloatingButtonSection(page, current_date).get(),
             ],
             expand=True,
             alignment=ft.MainAxisAlignment.START,
