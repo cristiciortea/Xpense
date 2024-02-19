@@ -28,11 +28,10 @@ def get_header_current_day_button(current_day: int, func: Callable) -> ft.TextBu
     )
 
 
-def get_header_calendar_icon(page: ft.Page, start_date: datetime.date,
-                             on_date_change: Callable[[datetime.datetime], None]) -> ft.Container:
+def get_header_calendar_icon(page: ft.Page, on_date_change: Callable[[datetime.datetime], None]) -> ft.Container:
     date_picker = ft.DatePicker(
         on_change=lambda _: on_date_change(date_picker.value),
-        first_date=datetime.datetime.combine(start_date, datetime.time()),
+        first_date=datetime.datetime.combine(datetime.date(2022, 1, 1), datetime.time()),
     )
     page.overlay.append(date_picker)
     return ft.Container(

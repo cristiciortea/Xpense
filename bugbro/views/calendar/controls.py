@@ -348,7 +348,7 @@ class CalendarNavigator:
                         self.start_date.day,
                         lambda _: self.calendar_builder.go_today()
                     ),
-                    get_header_calendar_icon(self.page, self.start_date, self.calendar_builder.pick_date)
+                    get_header_calendar_icon(self.page, self.calendar_builder.pick_date)
                 ]
             ),
         )
