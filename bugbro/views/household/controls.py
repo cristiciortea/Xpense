@@ -288,8 +288,11 @@ class FloatingButtonSection:
     def __init__(self, page: ft.Page, current_date: datetime.date):
         self._page = page
         self._current_date = current_date
-        self._view = get_transactions_view(self._page, back_button_callable=lambda _: self._click_go_back_button(),
-                                           current_date=current_date)
+        self._view = get_transactions_view(
+            self._page,
+            back_button_callable=lambda _: self._click_go_back_button(),
+            current_date=current_date
+        )
 
     def _click_go_back_button(self):
         self._page.views.pop()

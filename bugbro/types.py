@@ -23,3 +23,9 @@ class DataAggregation(Enum):
     MONTHLY = "MONTHLY"
     YEARLY = "YEARLY"
     WEEKLY = "WEEKLY"
+
+
+class TransactionType(Enum):
+    INCOME = "Income"
+    EXPENSE = "Expense"
+    ALLOCATION = "Allocation"
