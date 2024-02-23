@@ -19,7 +19,7 @@ class CalendarBuilder:
         self._current_month = self._start_date.month
         self._current_month_backup = self._start_date.month
 
-        self._date_clicks: List[ft.UserControl] = []
+        self._date_clicks: List[ft.Container] = []
 
         self._calendar_grid: ft.Column | None = None
 

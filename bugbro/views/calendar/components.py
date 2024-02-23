@@ -3,12 +3,10 @@ from typing import Callable
 
 import flet as ft
 
-from bugbro.utilities.calendar import convert_into_datetime
-
 
 def get_header_current_day_button(current_day: int, func: Callable) -> ft.TextButton:
     return ft.TextButton(
-        width=35,
+        width=37,
         height=35,
         content=ft.Container(
             content=ft.Column([ft.Text(str(current_day), size=10, color=ft.colors.BLACK)],
@@ -35,8 +33,8 @@ def get_header_calendar_icon(page: ft.Page, on_date_change: Callable[[datetime.d
     )
     page.overlay.append(date_picker)
     return ft.Container(
-        width=32,
-        height=32,
+        width=35,
+        height=35,
         alignment=ft.alignment.center,
         content=ft.Icon(
             name=ft.icons.CALENDAR_MONTH_SHARP,
