@@ -4,7 +4,7 @@ from typing import Callable, List
 import flet as ft
 
 from bugbro.types import TransactionType
-from bugbro.utilities.household import keep_first_dot
+from bugbro.utilities.household import keep_first_dot, add_commas_to_number_text
 from bugbro.views.household.category_button import CategoryButton
 from bugbro.views.household.common.transaction_container import transaction_container_build
 
@@ -75,14 +75,16 @@ class Transaction:
         print(self._transaction_date)
 
     def _on_text_field_change(self, event):
-        amount = str(event.control.value)
+        amount = add_commas_to_number_text(str(event.control.value))
         amount = keep_first_dot(amount)
 
-        if len(amount) > 8:
-            self._amount_text_field_ref.current.value = amount[:8]
+        if len(amount) > 10:
+            self._amount_text_field_ref.current.value = amount[:10]
         else:
             self._amount_text_field_ref.current.value = amount
-        self._amount = float(self._amount_text_field_ref.current.value or 0)
+
+        if not amount == ".":
+            self._amount = float(self._amount_text_field_ref.current.value.replace(",", "") or 0)
         self._amount_text_field.update()
 
     def _build_input_amount_text_field(self) -> ft.TextField:
