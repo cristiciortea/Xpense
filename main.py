@@ -14,6 +14,7 @@ from xpense.views.view_builder import get_view
 
 def main(page: ft.Page):
     page.title = "Xpense - Expense tracker & budgeting simplified"
+    page.adaptive = True  # This will make cool on bots iOS and android.
 
     # Only temporary vars.
     page.window.width = 400
@@ -21,7 +22,7 @@ def main(page: ft.Page):
     # page.window_frameless = True
 
     # Common variables.
-    current_date = datetime.date.today()
+    current_datetime = datetime.datetime.today()
     data_aggregation = ft.Ref[ft.Text]()
 
     # Common layout.
@@ -33,11 +34,11 @@ def main(page: ft.Page):
 
     # Build application views.
     flet_route_main_view = get_view(route_url="/",
-                                    controls=get_household_controls(current_date, data_aggregation, page))
+                                    controls=get_household_controls(current_datetime, data_aggregation, page))
     flet_route_household_view = get_view(route_url=f"/{Routes.HOUSEHOLD.value.lower()}",
-                                         controls=get_household_controls(current_date, data_aggregation, page))
+                                         controls=get_household_controls(current_datetime, data_aggregation, page))
     flet_route_calendar_view = get_view(route_url=f"/{Routes.CALENDAR.value.lower()}",
-                                        controls=get_calendar_controls(page, current_date))
+                                        controls=get_calendar_controls(page, current_datetime))
 
     # Build application routing.
     index_router = flet_route.path(

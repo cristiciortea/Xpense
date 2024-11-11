@@ -1,45 +1,53 @@
+import dataclasses
 import datetime
-from typing import Callable, List
+from typing import Callable, Optional
 
 import flet as ft
 
 from xpense.types import TransactionType
-from xpense.utilities.household import keep_first_dot, add_commas_to_number_text
+from xpense.utilities.calendar import convert_datetime_to_string
+from xpense.utilities.household import keep_first_dot
 from xpense.views.household.category_button import CategoryButton
-from xpense.views.household.common.transaction_container import transaction_container_build
+
+
+@dataclasses.dataclass
+class Transaction:
+    type: Optional[TransactionType] = None
+    date: Optional[datetime] = None
+    amount: Optional[str] = None
+    category: Optional[str] = None
 
 
 class SegmentButton:
-    def __init__(self, segment_ref: ft.Ref[ft.SegmentedButton]):
-        self._segment_ref = segment_ref
+    def __init__(self, transaction: Transaction):
+        self._transaction = transaction
+        self._transaction.type = TransactionType.get_transaction_type(TransactionType.EXPENSE.value)
 
     def _on_change(self, event: ft.ControlEvent):
-        print("Segment change", event.control)
-        print(self._segment_ref.current.selected)
+        self._transaction.type = TransactionType.get_transaction_type(next(iter(event.control.selected)))
 
     def _get_segment_button(self) -> ft.SegmentedButton:
         return ft.SegmentedButton(
             on_change=lambda event: self._on_change(event),
-            width=360,
-            selected={TransactionType.INCOME.value},
+            width=380,
+            selected={TransactionType.EXPENSE.value},
             expand_loose=False,
             expand=True,
             segments=[
                 ft.Segment(
-                    value=TransactionType.INCOME.value,
-                    label=ft.Text(TransactionType.INCOME.value),
+                    value=TransactionType.EXPENSE.value,
+                    label=ft.Text(TransactionType.EXPENSE.value.capitalize()),
                 ),
                 ft.Segment(
-                    value=TransactionType.EXPENSE.value,
-                    label=ft.Text(TransactionType.EXPENSE.value),
+                    value=TransactionType.INCOME.value,
+                    label=ft.Text(TransactionType.INCOME.value.capitalize()),
                 ),
                 ft.Segment(
                     value=TransactionType.ALLOCATION.value,
-                    label=ft.Text(TransactionType.ALLOCATION.value),
+                    label=ft.Text(TransactionType.ALLOCATION.value.capitalize()),
                 ),
             ],
             scale=0.9,
-            ref=self._segment_ref
         )
 
     def get(self) -> ft.Container:
@@ -50,15 +58,17 @@ class SegmentButton:
         )
 
 
-class Transaction:
-    def __init__(self, page: ft.Page, current_date: datetime.date):
+class TransactionSection:
+    def __init__(self, page: ft.Page, transaction_pipe: "TransactionPipe"):
         self._page = page
-        self._current_date = current_date
+        self._transaction_pipe = transaction_pipe
+        self._transaction_pipe.transaction_section = self
+        self._transaction = self._transaction_pipe.transaction
 
-        self._transaction_date = current_date.strftime('%Y-%m-%d %H:%M:%S')
-        self._amount = 0
-        self._amount_text_field: None | ft.TextField = None
-        self._amount_text_field_ref = ft.Ref[ft.TextField]()
+        self._current_date = self._transaction.date
+        self.amount_text_field: None | ft.TextField = None
+        self.main_container: None | ft.Container = None
+        self.amount_container: None | ft.Container = None
 
         self._date_picker = ft.DatePicker(
             on_change=lambda _: self._on_date_change(self._date_picker.value),
@@ -70,109 +80,172 @@ class Transaction:
         self._category_modal = CategoryButton(self._page)
 
     def _on_date_change(self, target_date: datetime.datetime):
-        self._transaction_date = datetime.datetime.combine(target_date, datetime.datetime.now().time()).strftime(
-            '%Y-%m-%d %H:%M:%S')
-        print(self._transaction_date)
+        transaction_date = datetime.datetime.combine(target_date, datetime.datetime.now().time())
+        self._transaction.date = transaction_date
 
-    def _on_text_field_change(self, event):
-        amount = add_commas_to_number_text(str(event.control.value))
+    def _on_text_field_change(self, event: ft.ControlEvent):
+        amount = event.control.value
+
+        # Allow only digits and a single dot.
+        amount = ''.join(c for c in amount if c.isdigit() or c == '.')
         amount = keep_first_dot(amount)
 
-        if len(amount) > 10:
-            self._amount_text_field_ref.current.value = amount[:10]
-        else:
-            self._amount_text_field_ref.current.value = amount
+        # Limit to 7 digits before the dot.
+        amount = amount[:7]
 
-        if not amount == ".":
-            self._amount = float(self._amount_text_field_ref.current.value.replace(",", "") or 0)
-        self._amount_text_field.update()
+        # Update the text field.
+        self._transaction.amount = amount
+        self.amount_text_field.value = amount
+        self.amount_text_field.update()
 
     def _build_input_amount_text_field(self) -> ft.TextField:
-        if self._amount_text_field is None:
-            self._amount_text_field = ft.TextField(
+        if self.amount_text_field is None:
+            self.amount_text_field = ft.TextField(
+                value="",
                 hint_text="0.00",
                 adaptive=True,
                 on_change=lambda event: self._on_text_field_change(event),
                 border=ft.InputBorder.NONE,
-                width=60,
-                height=60,
-                input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9\.]", replacement_string=""),
+                width=80,
+                height=49,
                 multiline=False,
                 max_lines=1,
-                text_align=ft.TextAlign.START,
-                text_vertical_align=ft.VerticalAlignment.CENTER,
-                text_size=14,
+                text_align=ft.TextAlign.END,
+                text_vertical_align=ft.VerticalAlignment.START,
                 keyboard_type=ft.KeyboardType.PHONE,
-                ref=self._amount_text_field_ref,
+                text_size=13.8,
+                # fill_color=ft.colors.BLUE_600
             )
-        return self._amount_text_field
+        return self.amount_text_field
 
-    def get_date_container(self) -> ft.Container:
-        return transaction_container_build([
-            ft.Text("Date", weight=ft.FontWeight.BOLD),
-            ft.Container(
-                content=ft.Text(self._transaction_date.split()[0]),
-                on_click=lambda _: self._date_picker.pick_date())
-        ])
-
-    def get_amount_container(self) -> ft.Container:
-        return transaction_container_build(
-            [
-                ft.Text("Amount", weight=ft.FontWeight.BOLD),
-                ft.Row(
-                    controls=[
-                        ft.Icon(ft.icons.EURO_SYMBOL_OUTLINED, size=15),
-                        self._build_input_amount_text_field(),
-                    ],
-                    spacing=5,
-                )
-
-            ],
-            height=60,
+    def get_date_row(self) -> ft.Container:
+        return ft.Container(
+            # bgcolor=ft.colors.BLUE,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Text("Date", weight=ft.FontWeight.BOLD),
+                    ft.Container(
+                        content=ft.Text(convert_datetime_to_string(self._current_date).split()[0]),
+                        on_click=lambda _: self._date_picker.pick_date())
+                ],
+                spacing=0,
+            )
         )
 
-    def get_category_container(self) -> ft.Container:
-        return transaction_container_build(
-            [
-                ft.Text("Category", weight=ft.FontWeight.BOLD),
-                ft.Row(
+    def get_amount_row(self) -> ft.Container:
+        if not self.amount_container:
+            self.amount_container = ft.Container(
+                # bgcolor=ft.colors.BLUE,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Text(self._selected_category),
-                        ft.IconButton(
-                            icon=ft.icons.ARROW_DROP_DOWN,
-                            on_click=lambda event: self._category_modal.open_dialog(event)
+                        ft.Text("Amount", weight=ft.FontWeight.BOLD),
+                        ft.Row(
+                            controls=[
+                                ft.Icon(ft.icons.EURO_SYMBOL_OUTLINED, size=15),
+                                self._build_input_amount_text_field(),
+                            ],
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            # alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+                            # spacing=1,
                         )
+
                     ],
-                    spacing=5,
+                    spacing=0
                 )
-            ]
+            )
+        return self.amount_container
+
+    def get_category_row(self) -> ft.Container:
+        return ft.Container(
+            # bgcolor=ft.colors.BLUE,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Text("Category", weight=ft.FontWeight.BOLD),
+                    ft.Row(
+                        controls=[
+                            ft.Text(self._selected_category),
+                            ft.IconButton(
+                                icon=ft.icons.ARROW_DROP_DOWN,
+                                on_click=lambda event: self._category_modal.open_dialog(event)
+                            )
+                        ],
+                        spacing=5,
+                    )
+                ],
+                spacing=0,
+            )
         )
 
-    def get(self) -> List[ft.Container]:
-        return [
-            self.get_date_container(),
-            self.get_amount_container(),
-            self.get_category_container()
-        ]
+    def get(self) -> ft.Container:
+        if not self.main_container:
+            self.main_container = ft.Container(
+                content=ft.Column(controls=[
+                    self.get_date_row(),
+                    self.get_amount_row(),
+                    self.get_category_row(),
+                ],
+                    spacing=1),
+                # bgcolor=ft.colors.YELLOW,
+                alignment=ft.alignment.center,
+                margin=ft.margin.only(left=30, right=30),
+            )
+        return self.main_container
 
 
-def get_transactions_view(page: ft.Page, back_button_callable: Callable, current_date: datetime.date) -> ft.View:
-    segment_button_ref = ft.Ref[ft.SegmentedButton]()
+@dataclasses.dataclass
+class TransactionPipe:
+    transaction: Transaction
+    transaction_section: Optional[TransactionSection] = None
+
+
+def get_transactions_view(
+        page: ft.Page,
+        back_button_callable: Callable,
+        save_button_callable: Callable,
+        transaction_pipe: TransactionPipe
+) -> ft.View:
     return ft.View(
         controls=[
             ft.Container(
                 alignment=ft.alignment.top_left,
                 expand=True,
+                padding=ft.padding.only(left=10),
                 bgcolor=ft.colors.WHITE70,
                 content=ft.Column(
                     controls=[
-                        ft.Text("Add transaction", size=18, color=ft.colors.BLUE_600,
-                                theme_style=ft.TextThemeStyle.TITLE_MEDIUM),
-                        SegmentButton(segment_button_ref).get(),
-                        *Transaction(page, current_date).get(),
-                        ft.IconButton(
-                            icon=ft.icons.ARROW_LEFT,
-                            on_click=back_button_callable
+                        ft.Row(
+                            controls=[
+                                ft.Text("Add transaction", size=18, color=ft.colors.BLUE_600,
+                                        theme_style=ft.TextThemeStyle.TITLE_MEDIUM),
+                                ft.IconButton(
+                                    icon=ft.icons.CLOSE,
+                                    on_click=back_button_callable
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                        ),
+                        SegmentButton(transaction_pipe.transaction).get(),
+                        ft.Divider(leading_indent=20, trailing_indent=20),
+                        TransactionSection(page, transaction_pipe).get(),
+                        ft.Divider(leading_indent=20, trailing_indent=20),
+                        ft.Row(
+                            controls=[
+                                ft.IconButton(
+                                    icon=ft.icons.ARROW_BACK,
+                                    on_click=back_button_callable
+                                ),
+                                ft.IconButton(
+                                    icon=ft.icons.CHECK,
+                                    on_click=save_button_callable
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                         )
                     ],
                     spacing=0,

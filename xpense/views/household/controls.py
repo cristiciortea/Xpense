@@ -6,7 +6,7 @@ import flet as ft
 
 from xpense.types import DataAggregation
 from xpense.views.household.action_button import get_action_button
-from xpense.views.household.transactions_view import get_transactions_view
+from xpense.views.household.transactions_view import get_transactions_view, Transaction, TransactionPipe
 
 
 def get_household_container() -> ft.Container:
@@ -262,10 +262,10 @@ class TabsSection:
             expand=0,
             tabs=[
                 ft.Tab(
-                    text="Income",
+                    text="Expense",
                 ),
                 ft.Tab(
-                    text="Expense",
+                    text="Income",
                 ),
                 ft.Tab(
                     text="Allocations",
@@ -288,21 +288,16 @@ class FloatingButtonSection:
     def __init__(self, page: ft.Page, current_date: datetime.date):
         self._page = page
         self._current_date = current_date
+        self._transaction = Transaction(date=self._current_date)
+        self._transaction_pipe = TransactionPipe(transaction=self._transaction)
         self._view = get_transactions_view(
             self._page,
             back_button_callable=lambda _: self._click_go_back_button(),
-            current_date=current_date
+            save_button_callable=lambda _: self._click_save_button(),
+            transaction_pipe=self._transaction_pipe,
         )
 
-    def _click_go_back_button(self):
-        self._page.views.pop()
-        self._page.update()
-
-    def _click_floating_button(self):
-        self._page.views.append(self._view)
-        self._page.update()
-
-    def _get_button(self) -> ft.FloatingActionButton:
+    def _get_floating_button(self) -> ft.FloatingActionButton:
         return ft.FloatingActionButton(
             content=ft.Icon(ft.icons.ADD),
             bgcolor=ft.colors.AMBER_300,
@@ -311,17 +306,52 @@ class FloatingButtonSection:
             on_click=lambda _: self._click_floating_button()
         )
 
+    def _click_save_button(self):
+        print(f"saving transaction: {self._transaction}")
+
+        if not self._transaction.amount:
+            self._transaction_pipe.transaction_section.amount_text_field.error_text = "Required"
+            self._transaction_pipe.transaction_section.amount_container.bgcolor = ft.colors.YELLOW_100
+            self._transaction_pipe.transaction_section.main_container.update()
+            return
+
+        if self._transaction.amount and self._transaction_pipe.transaction_section.amount_text_field.error_text:
+            self._transaction_pipe.transaction_section.amount_text_field.error_text = ""
+            self._transaction_pipe.transaction_section.amount_container.bgcolor = ft.colors.WHITE
+            self._transaction_pipe.transaction_section.main_container.update()
+
+        self._click_go_back_button()
+
+    def _click_go_back_button(self):
+        self._page.views.pop()
+        self._page.update()
+
+    def _click_floating_button(self):
+        self._reset_transaction()
+        self._page.views.append(self._view)
+        self._page.update()
+
+    def _reset_transaction(self):
+        self._transaction = Transaction(date=self._current_date)
+        self._transaction_pipe = TransactionPipe(transaction=self._transaction)
+        self._view = get_transactions_view(
+            self._page,
+            back_button_callable=lambda _: self._click_go_back_button(),
+            save_button_callable=lambda _: self._click_save_button(),
+            transaction_pipe=self._transaction_pipe,
+        )
+
     def get(self) -> ft.Container:
         return ft.Container(
             alignment=ft.alignment.bottom_right,
             bgcolor=ft.colors.TRANSPARENT,
-            content=self._get_button(),
+            content=self._get_floating_button(),
             expand=True,
             padding=ft.padding.only(right=15, bottom=15)
         )
 
 
-def get_main_container(current_date: datetime.date, data_aggregation: ft.Ref[ft.Text],
+def get_main_container(current_date: datetime.datetime, data_aggregation: ft.Ref[ft.Text],
                        page: ft.Page) -> ft.Container:
     return ft.Container(
         alignment=ft.alignment.top_center,
@@ -343,6 +373,6 @@ def get_main_container(current_date: datetime.date, data_aggregation: ft.Ref[ft.
 
 
 def get_household_controls(
-        current_date: datetime.date, data_aggregation: ft.Ref[ft.Text], page: ft.Page
+        current_date: datetime.datetime, data_aggregation: ft.Ref[ft.Text], page: ft.Page
 ) -> List[ft.Control]:
     return [get_main_container(current_date, data_aggregation, page)]

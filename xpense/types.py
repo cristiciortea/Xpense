@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Self
 
 import flet as ft
 import flet_route
@@ -26,6 +26,16 @@ class DataAggregation(Enum):
 
 
 class TransactionType(Enum):
-    INCOME = "Income"
-    EXPENSE = "Expense"
-    ALLOCATION = "Allocation"
+    INCOME = "income"
+    EXPENSE = "expense"
+    ALLOCATION = "allocation"
+
+    @classmethod
+    def get_transaction_type(cls, type_str: str) -> Self:
+        if not isinstance(type_str, str):
+            return None
+
+        for transaction_type in TransactionType:
+            if transaction_type.value.lower() == type_str.lower():
+                return transaction_type
+        return None
