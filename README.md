@@ -1,6 +1,6 @@
-# BugBro - Budgeting Simplified
+# Xpense - Simplify Your Expense Tracking
 
-BugBro is a budgeting application designed to help individuals in Romania manage their finances with ease. Built with Python and Flet, it offers a simple and intuitive interface for tracking income, expenses, and financial goals.
+Xpense is an expense tracking application designed to help individuals in Romania manage their finances effortlessly. Built with Python and Flet, it offers a simple and intuitive interface for tracking income, expenses, and financial goals.
 
 ## Features
 
@@ -20,14 +20,12 @@ BugBro is a budgeting application designed to help individuals in Romania manage
 ### Installation
 
 1. Clone the repository:
-git clone https://github.com/yourusername/BugBro.git
+git clone https://github.com/yourusername/Xpense.git
 
+### Running Xpense
 
-### Running BugBro
-
-To run BugBro, execute the following command in the project directory:
-poetry run python bugbro/main.py
-
+To run Xpense, execute the following command in the project directory:
+poetry run python xpense/main.py
 
 ## Contributing
 
@@ -35,4 +33,4 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## License
 
-BugBro is released under the MIT License. See the LICENSE file for more details.
+Xpense is released under the MIT License. See the LICENSE file for more details.
