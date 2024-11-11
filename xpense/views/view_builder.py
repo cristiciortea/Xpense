@@ -3,9 +3,9 @@ from typing import Optional
 import flet as ft
 import flet_route
 
-from bugbro.views.calendar.controls import get_calendar_controls
-from bugbro.views.household.controls import get_household_controls
-from bugbro.types import flet_route_callable_type, Routes
+from xpense.views.calendar.controls import get_calendar_controls
+from xpense.views.household.controls import get_household_controls
+from xpense.types import flet_route_callable_type, Routes
 
 
 def get_view(route_url: str, controls: Optional[list[ft.Control]] = None) -> flet_route_callable_type:

@@ -1,6 +1,6 @@
 import flet as ft
 
-from bugbro.types import Routes
+from xpense.types import Routes
 
 
 def get_app_bar() -> ft.AppBar:

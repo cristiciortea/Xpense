@@ -3,10 +3,10 @@ from typing import Callable, List
 
 import flet as ft
 
-from bugbro.types import TransactionType
-from bugbro.utilities.household import keep_first_dot, add_commas_to_number_text
-from bugbro.views.household.category_button import CategoryButton
-from bugbro.views.household.common.transaction_container import transaction_container_build
+from xpense.types import TransactionType
+from xpense.utilities.household import keep_first_dot, add_commas_to_number_text
+from xpense.views.household.category_button import CategoryButton
+from xpense.views.household.common.transaction_container import transaction_container_build
 
 
 class SegmentButton:

@@ -1,12 +1,12 @@
 import calendar
 import datetime
-from typing import List, Optional
+from typing import List
 
 import flet as ft
 
-from bugbro.types import DataAggregation, Routes
-from bugbro.views.household.action_button import get_action_button
-from bugbro.views.household.transactions_view import get_transactions_view
+from xpense.types import DataAggregation
+from xpense.views.household.action_button import get_action_button
+from xpense.views.household.transactions_view import get_transactions_view
 
 
 def get_household_container() -> ft.Container:
@@ -19,12 +19,12 @@ def get_household_container() -> ft.Container:
                 ft.Text("Date Section"),
             ], expand=True),
             ft.Row([
-                ft.TextButton("Income", on_click=lambda e: print("Income")),
-                ft.TextButton("Expenses", on_click=lambda e: print("Expenses")),
+                ft.TextButton("Income", on_click=lambda event: print("Income")),
+                ft.TextButton("Expenses", on_click=lambda event: print("Expenses")),
             ]),
             get_action_button()
         ]),
-        bgcolor=ft.colors.BLUE_100,  # Background color of the container
+        bgcolor=ft.colors.BLUE_100,
         expand=True,
         margin=ft.margin.all(0),
     )
@@ -57,7 +57,7 @@ class OverviewSection:
         return ft.Container(
             height=50,
             width=75,
-            content=ft.Image(src="simple_wallet.png", color=ft.colors.WHITE),
+            content=ft.Image(src="xpense/assets/simple_wallet.png", color=ft.colors.WHITE),
             padding=ft.padding.only(left=15, top=10),
             alignment=ft.alignment.top_left
         )

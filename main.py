@@ -1,24 +1,23 @@
 import datetime
-import pathlib
 
 import flet as ft
 import flet_route
 
-from bugbro.actions import get_navigator
-from bugbro.components.layout.app_bar import get_app_bar
-from bugbro.components.layout.navigation_bar import get_navigation_bar
-from bugbro.types import Routes
-from bugbro.views.calendar.controls import get_calendar_controls
-from bugbro.views.household.controls import get_household_controls
-from bugbro.views.view_builder import get_view
+from xpense.actions import get_navigator
+from xpense.components.layout.app_bar import get_app_bar
+from xpense.components.layout.navigation_bar import get_navigation_bar
+from xpense.types import Routes
+from xpense.views.calendar.controls import get_calendar_controls
+from xpense.views.household.controls import get_household_controls
+from xpense.views.view_builder import get_view
 
 
 def main(page: ft.Page):
-    page.title = "BugBro - Budgeting Simplified"
+    page.title = "Xpense - Expense tracker & budgeting simplified"
 
     # Only temporary vars.
-    page.window_width = 400
-    page.window_height = 700
+    page.window.width = 400
+    page.window.height = 700
     # page.window_frameless = True
 
     # Common variables.
@@ -69,4 +68,4 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main, assets_dir="bugbro/assets/")
+    ft.app(target=main, assets_dir="xpense/assets")

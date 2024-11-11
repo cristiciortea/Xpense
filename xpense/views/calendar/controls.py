@@ -4,8 +4,8 @@ from typing import List, Optional, Callable, Tuple
 
 import flet as ft
 
-from bugbro.utilities.calendar import get_sign
-from bugbro.views.calendar.components import get_header_current_day_button, get_header_calendar_icon
+from xpense.utilities.calendar import get_sign
+from xpense.views.calendar.components import get_header_current_day_button, get_header_calendar_icon
 
 
 class CalendarBuilder:
