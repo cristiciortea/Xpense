@@ -6,7 +6,7 @@ import flet as ft
 
 from xpense.types import DataAggregation, Transaction
 from xpense.views.household.action_button import get_action_button
-from xpense.views.household.transactions_view import get_transactions_view, TransactionPipe
+from xpense.views.household.transaction_view import get_transactions_view, TransactionPipe
 
 
 def get_household_container() -> ft.Container:

@@ -7,7 +7,7 @@ import flet as ft
 from xpense.types import TransactionType, Transaction
 from xpense.utilities.calendar import convert_datetime_to_string
 from xpense.utilities.household import keep_first_dot
-from xpense.views.household.category_button import ExpenseCategoryButton
+from xpense.views.household.expense_category_button import ExpenseCategoryButton
 
 
 class SegmentButton:
