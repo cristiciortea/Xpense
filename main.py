@@ -17,8 +17,8 @@ def main(page: ft.Page):
     page.adaptive = True  # This will make cool on bots iOS and android.
 
     # Only temporary vars.
-    page.window.width = 400
-    page.window.height = 700
+    page.window.width = 412
+    page.window.height = 914
     # page.window_frameless = True
 
     # Common variables.
@@ -69,4 +69,4 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main, assets_dir="xpense/assets")
+    ft.app(target=main, assets_dir="assets")

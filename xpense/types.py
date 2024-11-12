@@ -1,4 +1,6 @@
-from typing import Callable, Self
+import dataclasses
+import datetime
+from typing import Callable, Self, Optional
 
 import flet as ft
 import flet_route
@@ -39,3 +41,11 @@ class TransactionType(Enum):
             if transaction_type.value.lower() == type_str.lower():
                 return transaction_type
         return None
+
+
+@dataclasses.dataclass
+class Transaction:
+    type: Optional[TransactionType] = None
+    date: Optional[datetime] = None
+    amount: Optional[str] = None
+    category: Optional[str] = None

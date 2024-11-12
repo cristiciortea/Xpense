@@ -4,9 +4,9 @@ from typing import List
 
 import flet as ft
 
-from xpense.types import DataAggregation
+from xpense.types import DataAggregation, Transaction
 from xpense.views.household.action_button import get_action_button
-from xpense.views.household.transactions_view import get_transactions_view, Transaction, TransactionPipe
+from xpense.views.household.transactions_view import get_transactions_view, TransactionPipe
 
 
 def get_household_container() -> ft.Container:
@@ -57,7 +57,7 @@ class OverviewSection:
         return ft.Container(
             height=50,
             width=75,
-            content=ft.Image(src="xpense/assets/simple_wallet.png", color=ft.colors.WHITE),
+            content=ft.Image(src="assets/simple_wallet.png", color=ft.colors.WHITE),
             padding=ft.padding.only(left=15, top=10),
             alignment=ft.alignment.top_left
         )

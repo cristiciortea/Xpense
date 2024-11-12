@@ -1,16 +1,53 @@
+from typing import Callable
+
 import flet as ft
 
+from xpense.types import Transaction
 
-class CategoryButton:
-    def __init__(self, page: ft.Page):
+DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS = {
+    "grocery": ft.icons.LOCAL_GROCERY_STORE,
+    "dining": ft.icons.RESTAURANT,
+    "transportation": ft.icons.DIRECTIONS_CAR,
+    "housing": ft.icons.HOME,
+    "healthcare": ft.icons.MEDICAL_SERVICES,
+    "entertainment": ft.icons.SPORTS_VOLLEYBALL_ROUNDED,
+    "shopping": ft.icons.SHOP,
+    "personal": ft.icons.PERSON,
+    "finance": ft.icons.CREDIT_CARD,
+    "pets": ft.icons.PETS,
+    "car lease": ft.icons.DIRECTIONS_CAR,
+    "mortgage": ft.icons.HOME_REPAIR_SERVICE,
+    "personal loan": ft.icons.PERSON_ADD,
+}
+
+
+def create_category_container(category_name: str, icon_name: ft.icons, on_click_func: Callable) -> ft.Container:
+    return ft.Container(
+        content=ft.Row(
+            controls=[
+                ft.Icon(icon_name, size=40),
+                ft.Text(category_name.title(), size=20),
+            ],
+            alignment=ft.MainAxisAlignment.START,
+            spacing=10,
+        ),
+        on_click=on_click_func,
+        data=category_name,
+        height=60,
+    )
+
+
+class ExpenseCategoryButton:
+    def __init__(self, page: ft.Page, category_label_ref: ft.Ref[ft.Text], transaction: Transaction):
         self._page = page
+        self._category_label_ref = category_label_ref
+        self._transaction = transaction
 
         self._click_category = lambda event: self.on_click_category(event)
         self._dialog_modal = ft.AlertDialog(
-            modal=False,
+            modal=True,
             content=self._get_content(),
             actions_alignment=ft.MainAxisAlignment.END,
-            on_dismiss=lambda e: print("Modal dialog dismissed!"),
             shape=ft.BeveledRectangleBorder(),
             title_padding=ft.padding.symmetric(20, 24),
             content_padding=ft.padding.symmetric(0, 0),
@@ -19,25 +56,19 @@ class CategoryButton:
         )
 
     def open_dialog(self, _: ft.ControlEvent):
-        self._page.dialog = self._dialog_modal
-        self._dialog_modal.open = True
-        self._page.update()
+        self._page.open(self._dialog_modal)
 
-    def on_click_category(self, _: ft.ControlEvent):
-        self._dialog_modal.open = False
+    def on_click_category(self, event: ft.ControlEvent):
+        self._category_label_ref.current.value = event.control.data.capitalize()
+        self._transaction.category = event.control.data
+        self._page.close(self._dialog_modal)
         self._page.update()
 
     def _get_content(self):
         return ft.ListView(
             spacing=0,
             controls=[
-                ft.Container(
-                    content=ft.Icon(ft.icons.BED),
-                    on_click=self._click_category,
-                    border=ft.border.only(bottom=ft.BorderSide(0.9, ft.colors.GREY)),
-                    data="abc",
-                    alignment=ft.alignment.center,
-                    height=100,
-                )
-            ],
+                create_category_container(name, icon, self._click_category)
+                for name, icon in DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS.items()
+            ]
         )

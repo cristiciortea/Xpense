@@ -4,18 +4,10 @@ from typing import Callable, Optional
 
 import flet as ft
 
-from xpense.types import TransactionType
+from xpense.types import TransactionType, Transaction
 from xpense.utilities.calendar import convert_datetime_to_string
 from xpense.utilities.household import keep_first_dot
-from xpense.views.household.category_button import CategoryButton
-
-
-@dataclasses.dataclass
-class Transaction:
-    type: Optional[TransactionType] = None
-    date: Optional[datetime] = None
-    amount: Optional[str] = None
-    category: Optional[str] = None
+from xpense.views.household.category_button import ExpenseCategoryButton
 
 
 class SegmentButton:
@@ -76,8 +68,9 @@ class TransactionSection:
         )
         self._page.overlay.append(self._date_picker)
 
-        self._selected_category = "Default"
-        self._category_modal = CategoryButton(self._page)
+        self._transaction.category = "Default"
+        self._category_label_ref = ft.Ref[ft.Text]()
+        self._category_button = ExpenseCategoryButton(self._page, self._category_label_ref, self._transaction)
 
     def _on_date_change(self, target_date: datetime.datetime):
         transaction_date = datetime.datetime.combine(target_date, datetime.datetime.now().time())
@@ -169,10 +162,10 @@ class TransactionSection:
                     ft.Text("Category", weight=ft.FontWeight.BOLD),
                     ft.Row(
                         controls=[
-                            ft.Text(self._selected_category),
+                            ft.Text(self._transaction.category, ref=self._category_label_ref),
                             ft.IconButton(
                                 icon=ft.icons.ARROW_DROP_DOWN,
-                                on_click=lambda event: self._category_modal.open_dialog(event)
+                                on_click=lambda event: self._category_button.open_dialog(event)
                             )
                         ],
                         spacing=5,
