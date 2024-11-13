@@ -4,10 +4,16 @@ from typing import Callable, Optional
 
 import flet as ft
 
-from xpense.types import TransactionType, Transaction
+from xpense.types import TransactionType, Transaction, Currency
 from xpense.utilities.calendar import convert_datetime_to_string
 from xpense.utilities.household import keep_first_dot
 from xpense.views.household.expense_category_button import ExpenseCategoryButton
+
+CURRENCY_TO_ICONS = {
+    Currency.EURO: ft.icons.EURO,
+    Currency.DOLLAR: ft.icons.ATTACH_MONEY,
+    Currency.RON: ft.icons.MONEY
+}
 
 
 class SegmentButton:
@@ -68,7 +74,7 @@ class TransactionSection:
         )
         self._page.overlay.append(self._date_picker)
 
-        self._transaction.category = "Default"
+        self._transaction.category = "Other"
         self._category_label_ref = ft.Ref[ft.Text]()
         self._category_button = ExpenseCategoryButton(self._page, self._category_label_ref, self._transaction)
 
@@ -91,6 +97,14 @@ class TransactionSection:
         self.amount_text_field.value = amount
         self.amount_text_field.update()
 
+    def _on_currency_change(self, event: ft.ControlEvent):
+        selected_text = event.control.text
+        selected_currency = Currency.get_currency_type(selected_text)
+        menu_button = event.control.parent
+        self._transaction.currency = selected_currency
+        menu_button.icon = CURRENCY_TO_ICONS.get(selected_currency)
+        menu_button.update()
+
     def _build_input_amount_text_field(self) -> ft.TextField:
         if self.amount_text_field is None:
             self.amount_text_field = ft.TextField(
@@ -111,7 +125,7 @@ class TransactionSection:
             )
         return self.amount_text_field
 
-    def get_date_row(self) -> ft.Container:
+    def get_date_container(self) -> ft.Container:
         return ft.Container(
             # bgcolor=ft.colors.BLUE,
             content=ft.Row(
@@ -127,7 +141,20 @@ class TransactionSection:
             )
         )
 
-    def get_amount_row(self) -> ft.Container:
+    def _get_currency_pop_menu(self):
+        return ft.PopupMenuButton(
+            icon=ft.icons.EURO,
+            items=[
+                ft.PopupMenuItem(text=Currency.RON.value, on_click=self._on_currency_change),
+                ft.PopupMenuItem(text=Currency.EURO.value, on_click=self._on_currency_change),
+                ft.PopupMenuItem(text=Currency.DOLLAR.value, on_click=self._on_currency_change),
+            ],
+            elevation=2,
+            tooltip="Change currency",
+            icon_size=14,
+        )
+
+    def get_amount_container(self) -> ft.Container:
         if not self.amount_container:
             self.amount_container = ft.Container(
                 # bgcolor=ft.colors.BLUE,
@@ -138,7 +165,7 @@ class TransactionSection:
                         ft.Text("Amount", weight=ft.FontWeight.BOLD),
                         ft.Row(
                             controls=[
-                                ft.Icon(ft.icons.EURO_SYMBOL_OUTLINED, size=15),
+                                self._get_currency_pop_menu(),
                                 self._build_input_amount_text_field(),
                             ],
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -152,7 +179,7 @@ class TransactionSection:
             )
         return self.amount_container
 
-    def get_category_row(self) -> ft.Container:
+    def get_category_container(self) -> ft.Container:
         return ft.Container(
             # bgcolor=ft.colors.BLUE,
             content=ft.Row(
@@ -179,9 +206,9 @@ class TransactionSection:
         if not self.main_container:
             self.main_container = ft.Container(
                 content=ft.Column(controls=[
-                    self.get_date_row(),
-                    self.get_amount_row(),
-                    self.get_category_row(),
+                    self.get_date_container(),
+                    self.get_amount_container(),
+                    self.get_category_container(),
                 ],
                     spacing=1),
                 # bgcolor=ft.colors.YELLOW,

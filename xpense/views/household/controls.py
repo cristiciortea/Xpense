@@ -3,8 +3,9 @@ import datetime
 from typing import List
 
 import flet as ft
+from flet_core import PopupMenuPosition
 
-from xpense.types import DataAggregation, Transaction
+from xpense.types import DataAggregation, Transaction, Currency
 from xpense.views.household.action_button import get_action_button
 from xpense.views.household.transaction_view import get_transactions_view, TransactionPipe
 
@@ -186,10 +187,12 @@ class DateSection:
         self._current_date = current_date
 
         self._data_aggregation = data_aggregation
-        self._data_aggregation_text = ft.Text(ref=self._data_aggregation,
-                                              text_align=ft.TextAlign.CENTER,
-                                              size=13,
-                                              weight=ft.FontWeight.BOLD)
+        self._data_aggregation_text = ft.Text(
+            ref=self._data_aggregation,
+            text_align=ft.TextAlign.CENTER,
+            size=13,
+            weight=ft.FontWeight.BOLD
+        )
         self._data_aggregation.current.value = DataAggregation.MONTHLY.value
 
     def _get_data_aggregation_label_container(self) -> ft.Container:
@@ -217,6 +220,8 @@ class DateSection:
                 ft.PopupMenuItem(text=DataAggregation.YEARLY.value, on_click=change_pop_menu),
                 ft.PopupMenuItem(text=DataAggregation.WEEKLY.value, on_click=change_pop_menu),
             ],
+            menu_position=PopupMenuPosition.UNDER,
+            enable_feedback=True
         )
 
     def get(self) -> ft.Container:
@@ -332,7 +337,7 @@ class FloatingButtonSection:
         self._page.update()
 
     def _reset_transaction(self):
-        self._transaction = Transaction(date=self._current_date)
+        self._transaction = Transaction(date=self._current_date, currency=Currency.EURO)
         self._transaction_pipe = TransactionPipe(transaction=self._transaction)
         self._view = get_transactions_view(
             self._page,

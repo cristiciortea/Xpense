@@ -43,9 +43,26 @@ class TransactionType(Enum):
         return None
 
 
+class Currency(Enum):
+    RON = "ron"
+    EURO = "euro"
+    DOLLAR = "dollar"
+
+    @classmethod
+    def get_currency_type(cls, type_str: str) -> Self:
+        if not isinstance(type_str, str):
+            return None
+
+        for currency in Currency:
+            if currency.value.lower() == type_str.lower():
+                return currency
+        return None
+
+
 @dataclasses.dataclass
 class Transaction:
     type: Optional[TransactionType] = None
     date: Optional[datetime] = None
     amount: Optional[str] = None
+    currency: Optional[Currency] = None
     category: Optional[str] = None
