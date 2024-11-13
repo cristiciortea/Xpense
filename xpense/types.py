@@ -1,5 +1,5 @@
 import dataclasses
-import datetime
+from datetime import datetime
 import uuid
 from typing import Callable, Self, Optional
 
@@ -27,10 +27,20 @@ class DataAggregation(Enum):
     YEARLY = "yearly"
     WEEKLY = "weekly"
 
+    @classmethod
+    def get_aggregation_type(cls, type_str: str) -> Self:
+        if not isinstance(type_str, str):
+            return None
+
+        for aggregation_type in DataAggregation:
+            if aggregation_type.value.lower() == type_str.lower():
+                return aggregation_type
+        return None
+
 
 class TransactionType(Enum):
-    INCOME = "income"
     EXPENSE = "expense"
+    INCOME = "income"
     ALLOCATION = "allocation"
 
     @classmethod

@@ -74,7 +74,7 @@ class TransactionSection:
         )
         self._page.overlay.append(self._date_picker)
 
-        self._transaction.category = "Other"
+        self._transaction.category = "other"
         self._category_label_ref = ft.Ref[ft.Text]()
         self._category_button = ExpenseCategoryButton(self._page, self._category_label_ref, self._transaction)
 
@@ -108,12 +108,13 @@ class TransactionSection:
     def _build_input_amount_text_field(self) -> ft.TextField:
         if self.amount_text_field is None:
             self.amount_text_field = ft.TextField(
+                # bgcolor=ft.colors.BLACK,
                 value="",
                 hint_text="0.00",
                 adaptive=True,
                 on_change=lambda event: self._on_text_field_change(event),
                 border=ft.InputBorder.NONE,
-                width=80,
+                width=55,
                 height=49,
                 multiline=False,
                 max_lines=1,
@@ -152,6 +153,7 @@ class TransactionSection:
             elevation=2,
             tooltip="Change currency",
             icon_size=14,
+            width=14,
         )
 
     def get_amount_container(self) -> ft.Container:
@@ -169,8 +171,6 @@ class TransactionSection:
                                 self._build_input_amount_text_field(),
                             ],
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            # alignment=ft.MainAxisAlignment.SPACE_EVENLY,
-                            # spacing=1,
                         )
 
                     ],
@@ -189,7 +189,7 @@ class TransactionSection:
                     ft.Text("Category", weight=ft.FontWeight.BOLD),
                     ft.Row(
                         controls=[
-                            ft.Text(self._transaction.category, ref=self._category_label_ref),
+                            ft.Text(self._transaction.category.title(), ref=self._category_label_ref),
                             ft.IconButton(
                                 icon=ft.icons.ARROW_DROP_DOWN,
                                 on_click=lambda event: self._category_button.open_dialog(event)

@@ -16,6 +16,7 @@ DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS = {
     "medical": ft.icons.MEDICAL_SERVICES,
     "housing": ft.icons.HOME,
     "shopping": ft.icons.SHOP,
+    "fitness": ft.icons.FITNESS_CENTER,
     "technology": ft.icons.BIOTECH,
     "car": ft.icons.LOCAL_CAR_WASH,
     "rent": ft.icons.HOUSE,

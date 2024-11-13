@@ -1,8 +1,9 @@
+import inspect
 import sqlite3
 from dataclasses import fields
 from datetime import datetime
 from enum import Enum
-from typing import Type, TypeVar, Optional, Any, List
+from typing import Type, TypeVar, Optional, Any, List, get_origin, get_args, Union
 
 T = TypeVar('T')
 DEFAULT_DB_FILE = "xpense.db"
@@ -58,11 +59,11 @@ class BaseRepository:
             return self._row_to_object(row, model_class)
         return None
 
-    def get_all(self, model_class: Type[T]) -> List[T]:
+    def get_all(self) -> List[T]:
         """Retrieve all objects of the given model class."""
         cursor = self.conn.execute(f'''SELECT * FROM {self.table_name}''')
         rows = cursor.fetchall()
-        return [self._row_to_object(row, model_class) for row in rows]
+        return [self._row_to_object(row, self.model_class) for row in rows]
 
     def update(self, obj: T):
         """Update an existing object."""
@@ -133,9 +134,11 @@ class BaseRepository:
             return None
         origin_type = getattr(field_type, '__origin__', None)
         actual_type = field_type
-        if origin_type is Optional:
-            actual_type = field_type.__args__[0]
-        if issubclass(actual_type, Enum):
+
+        if get_origin(actual_type) == Union:
+            actual_type = get_args(actual_type)[0]
+
+        if inspect.isclass(actual_type) and issubclass(actual_type, Enum):
             return actual_type(value)
         elif actual_type is datetime:
             return datetime.fromisoformat(value)

@@ -3,12 +3,15 @@ import datetime
 from typing import List
 
 import flet as ft
-from flet_core import PopupMenuPosition
+from flet_core import PopupMenuPosition, BlendMode
+from flet_core.border_radius import horizontal
 
 from xpense.database.repository_container import RepositoryContainer
-from xpense.types import DataAggregation, Transaction, Currency
+from xpense.types import DataAggregation, Transaction, Currency, TransactionType
+from xpense.utilities.common import round_to_two_decimals, human_readable_datetime
 from xpense.views.household.action_button import get_action_button
-from xpense.views.household.transaction_view import get_transactions_view, TransactionPipe
+from xpense.views.household.expense_category_button import DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS
+from xpense.views.household.transaction_view import get_transactions_view, TransactionPipe, CURRENCY_TO_ICONS
 
 
 def get_household_container() -> ft.Container:
@@ -194,7 +197,7 @@ class DateSection:
             size=13,
             weight=ft.FontWeight.BOLD
         )
-        self._data_aggregation.current.value = DataAggregation.MONTHLY.value
+        self._data_aggregation.current.value = DataAggregation.MONTHLY.value.upper()
 
     def _get_data_aggregation_label_container(self) -> ft.Container:
         month_name = calendar.month_name[self._current_date.month].upper()
@@ -210,16 +213,16 @@ class DateSection:
     def _get_pop_menu_button(self) -> ft.PopupMenuButton:
         def change_pop_menu(event: ft.ControlEvent):
             text = event.control.text
-            self._data_aggregation.current.value = DataAggregation(text).value
-            self._data_aggregation_text.value = DataAggregation(text).value
+            self._data_aggregation.current.value = DataAggregation.get_aggregation_type(text).value.upper()
+            self._data_aggregation_text.value = DataAggregation.get_aggregation_type(text).value.upper()
             self._data_aggregation_text.update()
 
         return ft.PopupMenuButton(
             icon=ft.icons.ARROW_DROP_DOWN,
             items=[
-                ft.PopupMenuItem(text=DataAggregation.MONTHLY.value, on_click=change_pop_menu),
-                ft.PopupMenuItem(text=DataAggregation.YEARLY.value, on_click=change_pop_menu),
-                ft.PopupMenuItem(text=DataAggregation.WEEKLY.value, on_click=change_pop_menu),
+                ft.PopupMenuItem(text=DataAggregation.MONTHLY.value.upper(), on_click=change_pop_menu),
+                ft.PopupMenuItem(text=DataAggregation.YEARLY.value.upper(), on_click=change_pop_menu),
+                ft.PopupMenuItem(text=DataAggregation.WEEKLY.value.upper(), on_click=change_pop_menu),
             ],
             menu_position=PopupMenuPosition.UNDER,
             enable_feedback=True
@@ -260,25 +263,22 @@ class DateSection:
         )
 
 
-class TabsSection:
-    def _get_tabs(self) -> ft.Tabs:
-        return ft.Tabs(
-            selected_index=0,
-            animation_duration=150,
-            expand=0,
-            tabs=[
-                ft.Tab(
-                    text="Expense",
-                ),
-                ft.Tab(
-                    text="Income",
-                ),
-                ft.Tab(
-                    text="Allocations",
-                ),
-            ],
-            top=True,
-            tab_alignment=ft.TabAlignment.FILL
+class TransactionTypeTabsSection:
+    def _get_tabs(self) -> ft.Container:
+        return ft.Container(
+            # bgcolor=ft.colors.YELLOW_500,
+            content=ft.Tabs(
+                selected_index=0,
+                animation_duration=150,
+                expand=0,
+                tabs=[
+                    ft.Tab(text=text.value.capitalize())
+                    for text in TransactionType
+                ],
+                top=True,
+                tab_alignment=ft.TabAlignment.FILL,
+                padding=0,
+            )
         )
 
     def get(self) -> ft.Container:
@@ -310,7 +310,8 @@ class FloatingButtonSection:
             bgcolor=ft.colors.AMBER_300,
             shape=ft.RoundedRectangleBorder(radius=20),
             scale=0.9,
-            on_click=lambda _: self._click_floating_button()
+            hover_elevation=10,
+            on_click=lambda _: self._click_floating_button(),
         )
 
     def _click_save_button(self):
@@ -354,15 +355,73 @@ class FloatingButtonSection:
             alignment=ft.alignment.bottom_right,
             bgcolor=ft.colors.TRANSPARENT,
             content=self._get_floating_button(),
-            expand=True,
-            padding=ft.padding.only(right=15, bottom=15)
+            padding=ft.padding.only(right=15, bottom=15),
+            height=80,
+            width=80,
         )
 
 
+class TransactionListViewSection:
+    def __init__(self, page: ft.Page, repository_container: RepositoryContainer):
+        self._page = page
+        self._rc = repository_container
+
+    def get(self):
+        list_view = ft.ListView(
+            spacing=1, padding=0, auto_scroll=False,
+            expand=True,
+            on_scroll=(lambda _: self._page.update())
+        )
+        self._populate_list_view(list_view)
+        return list_view
+
+    def _populate_list_view(self, list_view: ft.ListView):
+        transactions: List[Transaction] = self._rc.transactions.get_all()
+
+        for transaction in transactions:
+            list_view.controls.append(
+                ft.Container(
+                    alignment=ft.alignment.center_left,
+                    bgcolor=ft.colors.GREY_100,
+                    padding=ft.padding.only(left=10, right=10),
+                    height=60,
+                    content=ft.Row(
+                        controls=[
+                            ft.Row(
+                                controls=[
+                                    ft.Icon(DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS.get(transaction.category), size=40),
+                                    ft.Column(
+                                        controls=[ft.Text(value=transaction.category.title()),
+                                                  ft.Text(value=human_readable_datetime(transaction.date),
+                                                          size=10)],
+                                        spacing=0, alignment=ft.MainAxisAlignment.CENTER,
+                                    ),
+                                ]
+                            ),
+                            ft.Row(
+                                controls=[
+                                    ft.Icon(CURRENCY_TO_ICONS.get(transaction.currency), size=12,
+                                            color=ft.colors.RED_500),
+                                    ft.Text(value=round_to_two_decimals(transaction.amount), color=ft.colors.RED_500,
+                                            size=13),
+                                ],
+                                spacing=2, vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                                alignment=ft.alignment.center
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                )
+            )
+
+
 def get_main_container(
+        page: ft.Page,
         repository_container: RepositoryContainer,
-        current_date: datetime.datetime, data_aggregation: ft.Ref[ft.Text],
-        page: ft.Page
+        setup_currency_type: Currency,
+        data_aggregation: ft.Ref[ft.Text],
+        current_date: datetime.datetime,
 ) -> ft.Container:
     return ft.Container(
         alignment=ft.alignment.top_center,
@@ -373,10 +432,17 @@ def get_main_container(
             controls=[
                 OverviewSection().get(),
                 DateSection(current_date, data_aggregation).get(),
-                TabsSection().get(),
-                FloatingButtonSection(page, repository_container, current_date).get(),
+                TransactionTypeTabsSection().get(),
+                ft.Stack(
+                    controls=[
+                        TransactionListViewSection(page=page, repository_container=repository_container).get(),
+                        FloatingButtonSection(page, repository_container, current_date).get(),
+                    ],
+                    expand=True,
+                    alignment=ft.alignment.bottom_right,
+                )
             ],
-            expand=True,
+            # expand=True,
             alignment=ft.MainAxisAlignment.START,
             spacing=0,
         )
@@ -384,7 +450,10 @@ def get_main_container(
 
 
 def get_household_controls(
+        page: ft.Page,
         repository_container: RepositoryContainer,
-        current_date: datetime.datetime, data_aggregation: ft.Ref[ft.Text], page: ft.Page
+        setup_currency_type: Currency,
+        data_aggregation: ft.Ref[ft.Text],
+        current_date: datetime.datetime,
 ) -> List[ft.Control]:
-    return [get_main_container(repository_container, current_date, data_aggregation, page)]
+    return [get_main_container(page, repository_container, setup_currency_type, data_aggregation, current_date)]
