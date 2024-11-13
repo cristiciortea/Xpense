@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import uuid
 from typing import Callable, Self, Optional
 
 import flet as ft
@@ -22,9 +23,9 @@ class Routes(Enum):
 
 
 class DataAggregation(Enum):
-    MONTHLY = "MONTHLY"
-    YEARLY = "YEARLY"
-    WEEKLY = "WEEKLY"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+    WEEKLY = "weekly"
 
 
 class TransactionType(Enum):
@@ -59,6 +60,10 @@ class Currency(Enum):
         return None
 
 
+def uuid4_factory() -> str:
+    return str(uuid.uuid4())
+
+
 @dataclasses.dataclass
 class Transaction:
     type: Optional[TransactionType] = None
@@ -66,3 +71,4 @@ class Transaction:
     amount: Optional[str] = None
     currency: Optional[Currency] = None
     category: Optional[str] = None
+    id: Optional[str] = dataclasses.field(default_factory=uuid4_factory)

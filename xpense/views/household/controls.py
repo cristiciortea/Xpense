@@ -5,6 +5,7 @@ from typing import List
 import flet as ft
 from flet_core import PopupMenuPosition
 
+from xpense.database.repository_container import RepositoryContainer
 from xpense.types import DataAggregation, Transaction, Currency
 from xpense.views.household.action_button import get_action_button
 from xpense.views.household.transaction_view import get_transactions_view, TransactionPipe
@@ -290,7 +291,7 @@ class TabsSection:
 
 
 class FloatingButtonSection:
-    def __init__(self, page: ft.Page, current_date: datetime.date):
+    def __init__(self, page: ft.Page, repository_container: RepositoryContainer, current_date: datetime.date):
         self._page = page
         self._current_date = current_date
         self._transaction = Transaction(date=self._current_date)
@@ -301,6 +302,7 @@ class FloatingButtonSection:
             save_button_callable=lambda _: self._click_save_button(),
             transaction_pipe=self._transaction_pipe,
         )
+        self._rc = repository_container
 
     def _get_floating_button(self) -> ft.FloatingActionButton:
         return ft.FloatingActionButton(
@@ -312,7 +314,7 @@ class FloatingButtonSection:
         )
 
     def _click_save_button(self):
-        print(f"saving transaction: {self._transaction}")
+        print(f"DEBUG: saving transaction: {self._transaction}")
 
         if not self._transaction.amount:
             self._transaction_pipe.transaction_section.amount_text_field.error_text = "Required"
@@ -325,6 +327,7 @@ class FloatingButtonSection:
             self._transaction_pipe.transaction_section.amount_container.bgcolor = ft.colors.WHITE
             self._transaction_pipe.transaction_section.main_container.update()
 
+        self._rc.transactions.add(self._transaction)
         self._click_go_back_button()
 
     def _click_go_back_button(self):
@@ -356,8 +359,11 @@ class FloatingButtonSection:
         )
 
 
-def get_main_container(current_date: datetime.datetime, data_aggregation: ft.Ref[ft.Text],
-                       page: ft.Page) -> ft.Container:
+def get_main_container(
+        repository_container: RepositoryContainer,
+        current_date: datetime.datetime, data_aggregation: ft.Ref[ft.Text],
+        page: ft.Page
+) -> ft.Container:
     return ft.Container(
         alignment=ft.alignment.top_center,
         expand=True,
@@ -368,7 +374,7 @@ def get_main_container(current_date: datetime.datetime, data_aggregation: ft.Ref
                 OverviewSection().get(),
                 DateSection(current_date, data_aggregation).get(),
                 TabsSection().get(),
-                FloatingButtonSection(page, current_date).get(),
+                FloatingButtonSection(page, repository_container, current_date).get(),
             ],
             expand=True,
             alignment=ft.MainAxisAlignment.START,
@@ -378,6 +384,7 @@ def get_main_container(current_date: datetime.datetime, data_aggregation: ft.Ref
 
 
 def get_household_controls(
+        repository_container: RepositoryContainer,
         current_date: datetime.datetime, data_aggregation: ft.Ref[ft.Text], page: ft.Page
 ) -> List[ft.Control]:
-    return [get_main_container(current_date, data_aggregation, page)]
+    return [get_main_container(repository_container, current_date, data_aggregation, page)]
