@@ -56,8 +56,8 @@ class SegmentButton:
         )
 
 
-class TransactionSection:
-    def __init__(self, page: ft.Page, transaction_pipe: "TransactionPipe"):
+class TransactionInputSection:
+    def __init__(self, page: ft.Page, transaction_pipe: "TransactionAddPipe"):
         self._page = page
         self._transaction_pipe = transaction_pipe
         self._transaction_pipe.transaction_section = self
@@ -219,16 +219,16 @@ class TransactionSection:
 
 
 @dataclasses.dataclass
-class TransactionPipe:
+class TransactionAddPipe:
     transaction: Transaction
-    transaction_section: Optional[TransactionSection] = None
+    transaction_section: Optional[TransactionInputSection] = None
 
 
-def get_transactions_view(
+def get_transaction_add_view(
         page: ft.Page,
         back_button_callable: Callable,
         save_button_callable: Callable,
-        transaction_pipe: TransactionPipe
+        transaction_add_pipe: TransactionAddPipe
 ) -> ft.View:
     return ft.View(
         controls=[
@@ -250,9 +250,9 @@ def get_transactions_view(
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                         ),
-                        SegmentButton(transaction_pipe.transaction).get(),
+                        SegmentButton(transaction_add_pipe.transaction).get(),
                         ft.Divider(leading_indent=20, trailing_indent=20),
-                        TransactionSection(page, transaction_pipe).get(),
+                        TransactionInputSection(page, transaction_add_pipe).get(),
                         ft.Divider(leading_indent=20, trailing_indent=20),
                         ft.Row(
                             controls=[

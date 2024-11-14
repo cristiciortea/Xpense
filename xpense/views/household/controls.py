@@ -11,7 +11,7 @@ from xpense.types import DataAggregation, Transaction, Currency, TransactionType
 from xpense.utilities.common import round_to_two_decimals, human_readable_datetime
 from xpense.views.household.action_button import get_action_button
 from xpense.views.household.transaction_category_button import DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS
-from xpense.views.household.transaction_view import get_transactions_view, TransactionPipe, CURRENCY_TO_ICONS
+from xpense.views.household.transaction_view import get_transaction_add_view, TransactionAddPipe, CURRENCY_TO_ICONS
 
 
 def get_household_container() -> ft.Container:
@@ -299,12 +299,12 @@ class FloatingButtonSection:
         self._page = page
         self._current_date = current_date
         self._transaction = Transaction(date=self._current_date)
-        self._transaction_pipe = TransactionPipe(transaction=self._transaction)
-        self._view = get_transactions_view(
+        self._transaction_add_pipe = TransactionAddPipe(transaction=self._transaction)
+        self._view = get_transaction_add_view(
             self._page,
             back_button_callable=lambda _: self._click_go_back_button(),
             save_button_callable=lambda _: self._click_save_button(),
-            transaction_pipe=self._transaction_pipe,
+            transaction_add_pipe=self._transaction_add_pipe,
         )
         self._rc = repository_container
 
@@ -322,15 +322,15 @@ class FloatingButtonSection:
         print(f"DEBUG: saving transaction: {self._transaction}")
 
         if not self._transaction.amount:
-            self._transaction_pipe.transaction_section.amount_text_field.error_text = "Required"
-            self._transaction_pipe.transaction_section.amount_container.bgcolor = ft.colors.YELLOW_100
-            self._transaction_pipe.transaction_section.main_container.update()
+            self._transaction_add_pipe.transaction_section.amount_text_field.error_text = "Required"
+            self._transaction_add_pipe.transaction_section.amount_container.bgcolor = ft.colors.YELLOW_100
+            self._transaction_add_pipe.transaction_section.main_container.update()
             return
 
-        if self._transaction.amount and self._transaction_pipe.transaction_section.amount_text_field.error_text:
-            self._transaction_pipe.transaction_section.amount_text_field.error_text = ""
-            self._transaction_pipe.transaction_section.amount_container.bgcolor = ft.colors.WHITE
-            self._transaction_pipe.transaction_section.main_container.update()
+        if self._transaction.amount and self._transaction_add_pipe.transaction_section.amount_text_field.error_text:
+            self._transaction_add_pipe.transaction_section.amount_text_field.error_text = ""
+            self._transaction_add_pipe.transaction_section.amount_container.bgcolor = ft.colors.WHITE
+            self._transaction_add_pipe.transaction_section.main_container.update()
 
         self._rc.transactions.add(self._transaction)
         self._click_go_back_button()
@@ -346,12 +346,12 @@ class FloatingButtonSection:
 
     def _reset_transaction(self):
         self._transaction = Transaction(date=self._current_date, currency=Currency.EURO)
-        self._transaction_pipe = TransactionPipe(transaction=self._transaction)
-        self._view = get_transactions_view(
+        self._transaction_add_pipe = TransactionAddPipe(transaction=self._transaction)
+        self._view = get_transaction_add_view(
             self._page,
             back_button_callable=lambda _: self._click_go_back_button(),
             save_button_callable=lambda _: self._click_save_button(),
-            transaction_pipe=self._transaction_pipe,
+            transaction_add_pipe=self._transaction_add_pipe,
         )
 
     def get(self) -> ft.Container:
