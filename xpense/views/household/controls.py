@@ -10,7 +10,7 @@ from xpense.database.repository_container import RepositoryContainer
 from xpense.types import DataAggregation, Transaction, Currency, TransactionType
 from xpense.utilities.common import round_to_two_decimals, human_readable_datetime
 from xpense.views.household.action_button import get_action_button
-from xpense.views.household.expense_category_button import DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS
+from xpense.views.household.transaction_category_button import DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS
 from xpense.views.household.transaction_view import get_transactions_view, TransactionPipe, CURRENCY_TO_ICONS
 
 

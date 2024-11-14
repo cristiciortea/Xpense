@@ -7,7 +7,7 @@ import flet as ft
 from xpense.types import TransactionType, Transaction, Currency
 from xpense.utilities.calendar import convert_datetime_to_string
 from xpense.utilities.household import keep_first_dot
-from xpense.views.household.expense_category_button import ExpenseCategoryButton
+from xpense.views.household.transaction_category_button import TransactionCategoryButton
 
 CURRENCY_TO_ICONS = {
     Currency.EURO: ft.icons.EURO,
@@ -76,7 +76,7 @@ class TransactionSection:
 
         self._transaction.category = "other"
         self._category_label_ref = ft.Ref[ft.Text]()
-        self._category_button = ExpenseCategoryButton(self._page, self._category_label_ref, self._transaction)
+        self._category_button = TransactionCategoryButton(self._page, self._category_label_ref, self._transaction)
 
     def _on_date_change(self, target_date: datetime.datetime):
         transaction_date = datetime.datetime.combine(target_date, datetime.datetime.now().time())
@@ -269,7 +269,7 @@ def get_transactions_view(
                         )
                     ],
                     spacing=0,
-                )
+                ),
             )
 
         ],
