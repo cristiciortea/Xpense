@@ -9,7 +9,7 @@ from xpense.components.layout.navigation_bar import get_navigation_bar
 from xpense.database.repository_container import RepositoryContainer
 from xpense.types import Routes, Currency
 from xpense.views.calendar.controls import get_calendar_controls
-from xpense.views.household.controls import get_household_controls
+from xpense.views.household.household_controls import get_household_controls
 from xpense.views.view_builder import get_view
 
 

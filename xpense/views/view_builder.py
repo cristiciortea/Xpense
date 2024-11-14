@@ -4,7 +4,7 @@ import flet as ft
 import flet_route
 
 from xpense.views.calendar.controls import get_calendar_controls
-from xpense.views.household.controls import get_household_controls
+from xpense.views.household.household_controls import get_household_controls
 from xpense.types import flet_route_callable_type, Routes
 
 

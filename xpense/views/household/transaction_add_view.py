@@ -224,12 +224,49 @@ class TransactionAddPipe:
     transaction_section: Optional[TransactionInputSection] = None
 
 
+class TransactionViewAppBar:
+    def __init__(
+            self,
+            back_button_callable: Callable,
+            delete_transaction_button_callable: Optional[Callable] = None
+    ):
+        self._back_button_callable = back_button_callable
+        self._delete_transaction_button_callable = delete_transaction_button_callable
+
+    def get(self) -> ft.BottomAppBar:
+        app_bar_controls = [
+            ft.IconButton(icon=ft.icons.ARROW_BACK, icon_color=ft.colors.WHITE,
+                          on_click=self._back_button_callable),
+            ft.Container(expand=True),
+        ]
+
+        if self._delete_transaction_button_callable:
+            app_bar_controls.append(
+                ft.IconButton(icon=ft.icons.DELETE, icon_color=ft.colors.WHITE,
+                              on_click=self._delete_transaction_button_callable),
+            )
+
+        return ft.BottomAppBar(
+            bgcolor=ft.colors.BLUE,
+            shape=ft.NotchShape.CIRCULAR,
+            notch_margin=10,
+            content=ft.Row(
+                controls=app_bar_controls
+            ),
+        )
+
+
 def get_transaction_add_view(
         page: ft.Page,
         back_button_callable: Callable,
-        save_button_callable: Callable,
+        save_transaction_button_callable: Callable,
+        # delete_transaction_button_callable: Callable,
         transaction_add_pipe: TransactionAddPipe
 ) -> ft.View:
+    transaction_view_appbar = TransactionViewAppBar(
+        back_button_callable=back_button_callable,
+    )
+
     return ft.View(
         controls=[
             ft.Container(
@@ -254,19 +291,6 @@ def get_transaction_add_view(
                         ft.Divider(leading_indent=20, trailing_indent=20),
                         TransactionInputSection(page, transaction_add_pipe).get(),
                         ft.Divider(leading_indent=20, trailing_indent=20),
-                        ft.Row(
-                            controls=[
-                                ft.IconButton(
-                                    icon=ft.icons.ARROW_BACK,
-                                    on_click=back_button_callable
-                                ),
-                                ft.IconButton(
-                                    icon=ft.icons.CHECK,
-                                    on_click=save_button_callable
-                                ),
-                            ],
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-                        )
                     ],
                     spacing=0,
                 ),
@@ -274,4 +298,15 @@ def get_transaction_add_view(
 
         ],
         bgcolor=ft.colors.WHITE,
+        bottom_appbar=transaction_view_appbar.get(),
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        vertical_alignment=ft.MainAxisAlignment.CENTER,
+        floating_action_button=ft.FloatingActionButton(
+            icon=ft.icons.CHECK,
+            bgcolor=ft.colors.AMBER_300,
+            shape=ft.RoundedRectangleBorder(radius=40),
+            scale=1,
+            on_click=save_transaction_button_callable,
+        ),
+        floating_action_button_location=ft.FloatingActionButtonLocation.CENTER_DOCKED,
     )

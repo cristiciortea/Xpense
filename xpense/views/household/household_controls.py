@@ -3,36 +3,13 @@ import datetime
 from typing import List, Optional, Callable
 
 import flet as ft
-from flet_core import PopupMenuPosition, BlendMode, ControlEvent
-from flet_core.border_radius import horizontal
+from flet_core import PopupMenuPosition, ControlEvent
 
 from xpense.database.repository_container import RepositoryContainer
 from xpense.types import DataAggregation, Transaction, Currency, TransactionType
 from xpense.utilities.common import round_to_two_decimals, human_readable_datetime
-from xpense.views.household.action_button import get_action_button
+from xpense.views.household.transaction_add_view import get_transaction_add_view, TransactionAddPipe, CURRENCY_TO_ICONS
 from xpense.views.household.transaction_category_button import DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS
-from xpense.views.household.transaction_view import get_transaction_add_view, TransactionAddPipe, CURRENCY_TO_ICONS
-
-
-def get_household_container() -> ft.Container:
-    return ft.Container(
-        content=ft.Column([
-            ft.Row([
-                ft.Text("Balance Overview", size=20),
-            ], expand=True),
-            ft.Row([
-                ft.Text("Date Section"),
-            ], expand=True),
-            ft.Row([
-                ft.TextButton("Income", on_click=lambda event: print("Income")),
-                ft.TextButton("Expenses", on_click=lambda event: print("Expenses")),
-            ]),
-            get_action_button()
-        ]),
-        bgcolor=ft.colors.BLUE_100,
-        expand=True,
-        margin=ft.margin.all(0),
-    )
 
 
 def get_main_column() -> ft.Column:
@@ -303,7 +280,7 @@ class FloatingButtonSection:
         self._view = get_transaction_add_view(
             self._page,
             back_button_callable=lambda _: self._click_go_back_button(),
-            save_button_callable=lambda _: self._click_save_button(),
+            save_transaction_button_callable=lambda _: self._click_save_button(),
             transaction_add_pipe=self._transaction_add_pipe,
         )
         self._rc = repository_container
@@ -350,7 +327,7 @@ class FloatingButtonSection:
         self._view = get_transaction_add_view(
             self._page,
             back_button_callable=lambda _: self._click_go_back_button(),
-            save_button_callable=lambda _: self._click_save_button(),
+            save_transaction_button_callable=lambda _: self._click_save_button(),
             transaction_add_pipe=self._transaction_add_pipe,
         )
 
@@ -444,6 +421,7 @@ def get_main_container(
     transaction_type_tabs_section = TransactionTypeTabsSection(
         on_tab_change_func=transaction_list_view_section.on_tab_change
     )
+
     return ft.Container(
         alignment=ft.alignment.top_center,
         expand=True,
