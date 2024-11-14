@@ -16,12 +16,12 @@ from xpense.views.view_builder import get_view
 def main(page: ft.Page):
     page.title = "Xpense - Expense tracker & budgeting simplified"
     page.adaptive = True  # This will make cool on bots iOS and android.
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
     # Only temporary vars.
     page.window.width = 412
     page.window.height = 914
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
     # page.window_frameless = True
 
     # Common variables.

@@ -1,9 +1,9 @@
 import calendar
 import datetime
-from typing import List
+from typing import List, Optional, Callable
 
 import flet as ft
-from flet_core import PopupMenuPosition, BlendMode
+from flet_core import PopupMenuPosition, BlendMode, ControlEvent
 from flet_core.border_radius import horizontal
 
 from xpense.database.repository_container import RepositoryContainer
@@ -264,6 +264,9 @@ class DateSection:
 
 
 class TransactionTypeTabsSection:
+    def __init__(self, on_tab_change_func: Callable[[ControlEvent], None]):
+        self._on_tab_change_func = on_tab_change_func
+
     def _get_tabs(self) -> ft.Container:
         return ft.Container(
             # bgcolor=ft.colors.YELLOW_500,
@@ -278,6 +281,7 @@ class TransactionTypeTabsSection:
                 top=True,
                 tab_alignment=ft.TabAlignment.FILL,
                 padding=0,
+                on_change=self._on_tab_change_func
             )
         )
 
@@ -366,19 +370,32 @@ class TransactionListViewSection:
         self._page = page
         self._rc = repository_container
 
-    def get(self):
-        list_view = ft.ListView(
-            spacing=1, padding=0, auto_scroll=False,
-            expand=True,
-            on_scroll=(lambda _: self._page.update())
-        )
-        self._populate_list_view(list_view)
-        return list_view
+        self._list_view: Optional[ft.ListView] = None
 
-    def _populate_list_view(self, list_view: ft.ListView):
+    def on_tab_change(self, event: ControlEvent):
+        selected_tab = event.control.tabs[event.control.selected_index]
+        selected_transaction_type = TransactionType.get_transaction_type(selected_tab.text)
+        self._list_view.controls = []
+        self._populate_list_view(self._list_view, selected_transaction_type)
+        self._list_view.update()
+
+    def get(self):
+        if not self._list_view:
+            self._list_view = ft.ListView(
+                spacing=1, padding=0, auto_scroll=False,
+                expand=True,
+                on_scroll=(lambda _: self._page.update())
+            )
+        self._populate_list_view(self._list_view, TransactionType.EXPENSE)  # The default is to populate expense type.
+        return self._list_view
+
+    def _populate_list_view(self, list_view: ft.ListView, populate_transaction_type: TransactionType):
         transactions: List[Transaction] = self._rc.transactions.get_all()
 
         for transaction in transactions:
+            if transaction.type != populate_transaction_type:
+                continue
+
             list_view.controls.append(
                 ft.Container(
                     alignment=ft.alignment.center_left,
@@ -423,6 +440,10 @@ def get_main_container(
         data_aggregation: ft.Ref[ft.Text],
         current_date: datetime.datetime,
 ) -> ft.Container:
+    transaction_list_view_section = TransactionListViewSection(page=page, repository_container=repository_container)
+    transaction_type_tabs_section = TransactionTypeTabsSection(
+        on_tab_change_func=transaction_list_view_section.on_tab_change
+    )
     return ft.Container(
         alignment=ft.alignment.top_center,
         expand=True,
@@ -432,10 +453,10 @@ def get_main_container(
             controls=[
                 OverviewSection().get(),
                 DateSection(current_date, data_aggregation).get(),
-                TransactionTypeTabsSection().get(),
+                transaction_type_tabs_section.get(),
                 ft.Stack(
                     controls=[
-                        TransactionListViewSection(page=page, repository_container=repository_container).get(),
+                        transaction_list_view_section.get(),
                         FloatingButtonSection(page, repository_container, current_date).get(),
                     ],
                     expand=True,
