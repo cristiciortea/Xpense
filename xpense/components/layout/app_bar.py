@@ -7,7 +7,7 @@ def get_app_bar() -> ft.AppBar:
     return ft.AppBar(
         title=ft.Text(value=Routes.HOUSEHOLD.value),
         center_title=False,
-        bgcolor=ft.colors.SURFACE_VARIANT,
+        bgcolor=ft.colors.BLUE_GREY_100,
         elevation=100,
         elevation_on_scroll=100,
         # force_material_transparency=True,

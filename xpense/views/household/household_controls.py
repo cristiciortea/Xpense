@@ -209,11 +209,12 @@ class DateSection:
         return ft.Container(
             alignment=ft.alignment.top_left,
             height=70,
-            border=ft.border.only(
-                top=ft.BorderSide(0.9, ft.colors.BLACK),
-                bottom=ft.BorderSide(0.9, ft.colors.BLACK)
-            ),
-            bgcolor=ft.colors.BLUE_100,
+            bgcolor=ft.colors.RED_100,
+            # gradient=ft.LinearGradient(
+            #     begin=ft.alignment.center_left,
+            #     end=ft.alignment.center_right,
+            #     colors=[ft.colors.BLUE_GREY_50, ft.colors.RED_100, ft.colors.BLUE_GREY_50]
+            # ),
             content=ft.Column(
                 spacing=0,
                 controls=[
@@ -244,30 +245,21 @@ class TransactionTypeTabsSection:
     def __init__(self, on_tab_change_func: Callable[[ControlEvent], None]):
         self._on_tab_change_func = on_tab_change_func
 
-    def _get_tabs(self) -> ft.Container:
-        return ft.Container(
-            # bgcolor=ft.colors.YELLOW_500,
-            content=ft.Tabs(
-                selected_index=0,
-                animation_duration=150,
-                expand=0,
-                tabs=[
-                    ft.Tab(text=text.value.capitalize())
-                    for text in TransactionType
-                ],
-                top=True,
-                tab_alignment=ft.TabAlignment.FILL,
-                padding=0,
-                on_change=self._on_tab_change_func
-            )
-        )
-
-    def get(self) -> ft.Container:
-        return ft.Container(
-            alignment=ft.alignment.top_left,
-            height=70,
-            bgcolor=ft.colors.TRANSPARENT,
-            content=self._get_tabs()
+    def get(self) -> ft.Tabs:
+        return ft.Tabs(
+            selected_index=0,
+            animation_duration=50,
+            tabs=[
+                ft.Tab(text=text.value.capitalize())
+                for text in TransactionType
+            ],
+            top=True,
+            tab_alignment=ft.TabAlignment.FILL,
+            padding=0,
+            divider_color=ft.colors.BLACK12,
+            on_change=self._on_tab_change_func,
+            indicator_tab_size=True,
+            indicator_thickness=True,
         )
 
 
@@ -491,8 +483,9 @@ def get_main_container(
     return ft.Container(
         alignment=ft.alignment.top_center,
         expand=True,
+        padding=0,
+        margin=0,
         bgcolor=ft.colors.WHITE70,
-        margin=-10,
         content=ft.Column(
             controls=[
                 OverviewSection().get(),

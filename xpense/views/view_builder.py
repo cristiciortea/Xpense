@@ -15,6 +15,9 @@ def get_view(route_url: str, controls: Optional[list[ft.Control]] = None) -> fle
             controls=controls,
             vertical_alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            bgcolor=ft.colors.WHITE70,
+            spacing=0,
+            padding=0,
         )
 
     return get_main_view
