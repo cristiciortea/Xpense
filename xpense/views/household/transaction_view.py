@@ -4,8 +4,9 @@ from typing import Callable, Optional
 
 import flet as ft
 
-from xpense.types import TransactionType, Transaction, Currency
+from xpense.types import TransactionType, Transaction, Currency, TransactionOperations
 from xpense.utilities.calendar import convert_datetime_to_string
+from xpense.utilities.common import round_to_two_decimals
 from xpense.utilities.household import keep_first_dot
 from xpense.views.household.transaction_category_button import TransactionCategoryButton
 
@@ -19,7 +20,7 @@ CURRENCY_TO_ICONS = {
 class SegmentButton:
     def __init__(self, transaction: Transaction):
         self._transaction = transaction
-        self._transaction.type = TransactionType.get_transaction_type(TransactionType.EXPENSE.value)
+        self._transaction_type = self._transaction.type
 
     def _on_change(self, event: ft.ControlEvent):
         self._transaction.type = TransactionType.get_transaction_type(next(iter(event.control.selected)))
@@ -28,7 +29,7 @@ class SegmentButton:
         return ft.SegmentedButton(
             on_change=lambda event: self._on_change(event),
             width=380,
-            selected={TransactionType.EXPENSE.value},
+            selected={self._transaction_type.value},
             expand_loose=False,
             expand=True,
             segments=[
@@ -57,26 +58,32 @@ class SegmentButton:
 
 
 class TransactionInputSection:
-    def __init__(self, page: ft.Page, transaction_pipe: "TransactionAddPipe"):
+    def __init__(self, page: ft.Page, transaction_pipe: "TransactionPipe"):
         self._page = page
         self._transaction_pipe = transaction_pipe
         self._transaction_pipe.transaction_section = self
         self._transaction = self._transaction_pipe.transaction
 
         self._current_date = self._transaction.date
-        self.amount_text_field: None | ft.TextField = None
-        self.main_container: None | ft.Container = None
-        self.amount_container: None | ft.Container = None
+        self.amount_text_field: Optional[ft.TextField] = None
+        self.main_container: Optional[ft.Container] = None
+        self.amount_container: Optional[ft.Container] = None
 
         self._date_picker = ft.DatePicker(
             on_change=lambda _: self._on_date_change(self._date_picker.value),
             first_date=datetime.datetime.combine(self._current_date - datetime.timedelta(days=365), datetime.time()),
+            current_date=self._transaction.date,
         )
         self._page.overlay.append(self._date_picker)
 
-        self._transaction.category = "other"
         self._category_label_ref = ft.Ref[ft.Text]()
         self._category_button = TransactionCategoryButton(self._page, self._category_label_ref, self._transaction)
+
+        # self._prepopulate_with_data_if_available_on_transaction()
+
+    def _prepopulate_with_data_if_available_on_transaction(self):
+        self.amount_text_field.value = self._transaction.amount
+        self.amount_text_field.update()
 
     def _on_date_change(self, target_date: datetime.datetime):
         transaction_date = datetime.datetime.combine(target_date, datetime.datetime.now().time())
@@ -109,8 +116,7 @@ class TransactionInputSection:
         if self.amount_text_field is None:
             self.amount_text_field = ft.TextField(
                 # bgcolor=ft.colors.BLACK,
-                value="",
-                hint_text="0.00",
+                value="" if not self._transaction.amount else round_to_two_decimals(self._transaction.amount),
                 adaptive=True,
                 on_change=lambda event: self._on_text_field_change(event),
                 border=ft.InputBorder.NONE,
@@ -122,6 +128,8 @@ class TransactionInputSection:
                 text_vertical_align=ft.VerticalAlignment.START,
                 keyboard_type=ft.KeyboardType.PHONE,
                 text_size=13.8,
+                hint_text="0.00",
+                hint_style=ft.TextStyle(size=13.8, weight=ft.FontWeight.NORMAL)
                 # fill_color=ft.colors.BLUE_600
             )
         return self.amount_text_field
@@ -219,7 +227,7 @@ class TransactionInputSection:
 
 
 @dataclasses.dataclass
-class TransactionAddPipe:
+class TransactionPipe:
     transaction: Transaction
     transaction_section: Optional[TransactionInputSection] = None
 
@@ -256,16 +264,22 @@ class TransactionViewAppBar:
         )
 
 
-def get_transaction_add_view(
+def get_transaction_view(
         page: ft.Page,
+        transaction_pipe: TransactionPipe,
         back_button_callable: Callable,
         save_transaction_button_callable: Callable,
-        # delete_transaction_button_callable: Callable,
-        transaction_add_pipe: TransactionAddPipe
+        delete_transaction_button_callable: Optional[Callable] = None,
+        transaction_operation: Optional[TransactionOperations] = TransactionOperations.ADD,
 ) -> ft.View:
     transaction_view_appbar = TransactionViewAppBar(
         back_button_callable=back_button_callable,
+        delete_transaction_button_callable=delete_transaction_button_callable,
     )
+    if transaction_operation == TransactionOperations.ADD:
+        transaction_view_headline = "Add transaction"
+    else:
+        transaction_view_headline = "Edit transaction"
 
     return ft.View(
         controls=[
@@ -278,7 +292,7 @@ def get_transaction_add_view(
                     controls=[
                         ft.Row(
                             controls=[
-                                ft.Text("Add transaction", size=18, color=ft.colors.BLUE_600,
+                                ft.Text(transaction_view_headline, size=18, color=ft.colors.BLUE_600,
                                         theme_style=ft.TextThemeStyle.TITLE_MEDIUM),
                                 ft.IconButton(
                                     icon=ft.icons.CLOSE,
@@ -287,9 +301,9 @@ def get_transaction_add_view(
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                         ),
-                        SegmentButton(transaction_add_pipe.transaction).get(),
+                        SegmentButton(transaction_pipe.transaction).get(),
                         ft.Divider(leading_indent=20, trailing_indent=20),
-                        TransactionInputSection(page, transaction_add_pipe).get(),
+                        TransactionInputSection(page, transaction_pipe).get(),
                         ft.Divider(leading_indent=20, trailing_indent=20),
                     ],
                     spacing=0,

@@ -82,3 +82,8 @@ class Transaction:
     currency: Optional[Currency] = None
     category: Optional[str] = None
     id: Optional[str] = dataclasses.field(default_factory=uuid4_factory)
+
+
+class TransactionOperations(Enum):
+    ADD = "add"
+    EDIT = "edit"
