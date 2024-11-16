@@ -37,100 +37,107 @@ def get_main_column() -> ft.Column:
 class OverviewSection:
     def _get_wallet_image_container(self) -> ft.Container:
         return ft.Container(
-            height=50,
+            height=46,
             width=75,
-            content=ft.Image(src="assets/simple_wallet.png", color=ft.colors.WHITE),
-            padding=ft.padding.only(left=15, top=10),
-            alignment=ft.alignment.top_left
+            content=ft.Image(
+                src="assets/simple_wallet.png", color=ft.colors.WHITE,
+            ),
         )
 
     def _get_first_column_balance_label_container(self) -> ft.Container:
         return ft.Container(
-            content=ft.Text("Balance This Month", color=ft.colors.WHITE, size=13),
+            content=ft.Text(
+                "Net Balance This Month", color=ft.colors.WHITE, size=13, width=120,
+            ),
             padding=ft.padding.only(left=15, top=2),
             alignment=ft.alignment.top_left
         )
 
     def _get_first_column_balance_container(self) -> ft.Container:
         return ft.Container(
-            content=ft.Text("€ 10.00", color=ft.colors.WHITE, size=15, weight=ft.FontWeight.BOLD),
+            content=ft.Text(
+                "€ 10.00", color=ft.colors.WHITE, size=15, weight=ft.FontWeight.BOLD.value,
+                tooltip="Shows the total amount left after accounting for expenses and planned allocations."
+            ),
             padding=ft.padding.only(left=15),
             alignment=ft.alignment.top_left
         )
 
-    def _get_first_column(self) -> ft.Column:
-        return ft.Column(
-            width=170,
-            controls=[
-                self._get_wallet_image_container(),
-                self._get_first_column_balance_label_container(),
-                self._get_first_column_balance_container(),
-            ],
+    def _get_first_column(self) -> ft.Container:
+        return ft.Container(
+            # bgcolor=ft.colors.TEAL_ACCENT,
+            width=130,
+            content=ft.Column(
+                spacing=0,
+                controls=[
+                    self._get_wallet_image_container(),
+                    self._get_first_column_balance_label_container(),
+                    self._get_first_column_balance_container(),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+                # horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            margin=ft.margin.only(left=2),
         )
 
-    def _get_second_column(self) -> ft.Column:
-        return ft.Column(
-            width=125,
-            controls=[
-                ft.Container(
-                    padding=ft.padding.only(top=20),
-                    content=ft.Column(
-                        alignment=ft.alignment.top_left,
-                        controls=[
-                            ft.Text(
-                                value="Income",
-                                color=ft.colors.WHITE,
-                                size=13,
-                            ),
-                            ft.Text(
-                                value="Expense",
-                                color=ft.colors.WHITE,
-                                size=13,
-                            ),
-                            ft.Text(
-                                value="Allocated",
-                                color=ft.colors.WHITE,
-                                size=13,
-                            ),
-                        ]
-                    )
-                )
-
-            ]
+    def _get_second_column(self) -> ft.Container:
+        return ft.Container(
+            # bgcolor=ft.colors.YELLOW,
+            alignment=ft.alignment.center_right,
+            padding=ft.padding.only(right=20),
+            width=130,
+            content=ft.Column(
+                spacing=0,
+                alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+                controls=[
+                    ft.Text(
+                        value="Income",
+                        color=ft.colors.WHITE,
+                        size=13,
+                    ),
+                    ft.Text(
+                        value="Expense",
+                        color=ft.colors.WHITE,
+                        size=13,
+                    ),
+                    ft.Text(
+                        value="Allocation",
+                        color=ft.colors.WHITE,
+                        size=13,
+                    ),
+                ]
+            )
         )
 
-    def _get_third_column(self) -> ft.Column:
-        return ft.Column(
-            controls=[
-                ft.Container(
-                    alignment=ft.alignment.top_right,
-                    padding=ft.padding.only(top=20),
-                    content=ft.Column(
-                        alignment=ft.alignment.top_right,
-                        controls=[
-                            ft.Text(
-                                value="€ 10.00",
-                                color=ft.colors.WHITE,
-                                size=13,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Text(
-                                value="€ 10.00",
-                                color=ft.colors.WHITE,
-                                size=13,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Text(
-                                value="€ 10.00",
-                                color=ft.colors.WHITE,
-                                size=13,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                        ]
-                    )
-                )
-
-            ]
+    def _get_third_column(self) -> ft.Container:
+        return ft.Container(
+            # bgcolor=ft.colors.BLUE,
+            alignment=ft.alignment.top_center,
+            width=130,
+            content=ft.Column(
+                spacing=0,
+                alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+                controls=[
+                    ft.Text(
+                        value="€ 10.00",
+                        color=ft.colors.WHITE,
+                        size=13,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                    ft.Text(
+                        value="€ 10.00",
+                        color=ft.colors.WHITE,
+                        size=13,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                    ft.Text(
+                        value="€ 10.00",
+                        color=ft.colors.WHITE,
+                        size=13,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                ]
+            )
         )
 
     def _get_main_row(self) -> ft.Row:
@@ -142,11 +149,15 @@ class OverviewSection:
                 self._get_third_column(),
             ],
             spacing=0,
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            # vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
     def get(self) -> ft.Container:
         return ft.Container(
-            height=120,
+            height=150,
+            padding=0,
+            margin=0,
             bgcolor=ft.colors.SURFACE_VARIANT,
             theme=ft.Theme(color_scheme_seed=ft.colors.BLUE_50),
             theme_mode=ft.ThemeMode.LIGHT,
@@ -155,7 +166,7 @@ class OverviewSection:
                 end=ft.alignment.center_right,
                 colors=[ft.colors.BLUE_700, ft.colors.RED_400]
             ),
-            content=self._get_main_row()
+            content=self._get_main_row(),
         )
 
 
