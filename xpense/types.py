@@ -10,6 +10,10 @@ from enum import Enum
 flet_route_callable_type = Callable[[ft.Page, flet_route.Params, flet_route.Basket], ft.View]
 
 
+def uuid4_factory() -> str:
+    return str(uuid.uuid4())
+
+
 class Routes(Enum):
     HOUSEHOLD = "Household"
     CALENDAR = "Calendar"
@@ -70,8 +74,9 @@ class Currency(Enum):
         return None
 
 
-def uuid4_factory() -> str:
-    return str(uuid.uuid4())
+class TransactionOperations(Enum):
+    ADD = "add"
+    EDIT = "edit"
 
 
 @dataclasses.dataclass
@@ -81,9 +86,5 @@ class Transaction:
     amount: Optional[str] = None
     currency: Optional[Currency] = None
     category: Optional[str] = None
+    aggregation: Optional[DataAggregation] = None
     id: Optional[str] = dataclasses.field(default_factory=uuid4_factory)
-
-
-class TransactionOperations(Enum):
-    ADD = "add"
-    EDIT = "edit"

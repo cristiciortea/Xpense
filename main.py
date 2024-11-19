@@ -7,7 +7,7 @@ from xpense.actions import get_navigator
 from xpense.components.layout.app_bar import get_app_bar
 from xpense.components.layout.navigation_bar import get_navigation_bar
 from xpense.database.repository_container import RepositoryContainer
-from xpense.types import Routes, Currency
+from xpense.types import Routes, Currency, DataAggregation
 from xpense.views.calendar.controls import get_calendar_controls
 from xpense.views.household.household_controls import get_household_controls
 from xpense.views.view_builder import get_view
@@ -26,7 +26,7 @@ def main(page: ft.Page):
 
     # Common variables.
     current_datetime = datetime.datetime.today()
-    data_aggregation = ft.Ref[ft.Text]()
+    data_aggregation = DataAggregation.MONTHLY
     repository_container = RepositoryContainer()
     setup_currency_type = Currency.EURO
 
@@ -40,13 +40,17 @@ def main(page: ft.Page):
     # Build application views.
     flet_route_main_view = get_view(
         route_url="/",
-        controls=get_household_controls(page, repository_container, setup_currency_type, data_aggregation,
-                                        current_datetime)
+        controls=get_household_controls(
+            page, repository_container, setup_currency_type, data_aggregation,
+            current_datetime
+        )
     )
     flet_route_household_view = get_view(
         route_url=f"/{Routes.HOUSEHOLD.value.lower()}",
-        controls=get_household_controls(page, repository_container, setup_currency_type, data_aggregation,
-                                        current_datetime)
+        controls=get_household_controls(
+            page, repository_container, setup_currency_type, data_aggregation,
+            current_datetime
+        )
     )
     flet_route_calendar_view = get_view(
         route_url=f"/{Routes.CALENDAR.value.lower()}",

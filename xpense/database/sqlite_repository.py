@@ -3,7 +3,7 @@ import sqlite3
 from dataclasses import fields
 from datetime import datetime
 from enum import Enum
-from typing import Type, TypeVar, Optional, Any, List, get_origin, get_args, Union
+from typing import Type, TypeVar, Optional, Any, List, get_origin, get_args, Union, Tuple
 
 T = TypeVar('T')
 DEFAULT_DB_FILE = "xpense.db"
@@ -87,6 +87,36 @@ class BaseRepository:
         ''', (obj_id,))
         self.conn.commit()
 
+    def get_by_conditions(self, conditions: List[Tuple[str, str, Any]], logic: Optional[str] = 'AND') -> List[T]:
+        """
+        Retrieve objects that match the given conditions.
+
+        :param conditions: A list of tuples in the form (field_name, operator, value).
+                           Operator can be '=', '!=', '<', '>', '<=', '>=', 'LIKE', etc.
+        :param logic: Logical operator to combine conditions ('AND' or 'OR'). Default is 'AND'.
+        :return: List of objects of type T.
+        """
+        valid_fields = [field.name for field in fields(self.model_class)]
+        where_clauses = []
+        params = []
+
+        for field_name, operator, value in conditions:
+            if field_name not in valid_fields:
+                raise ValueError(f"Invalid field name '{field_name}' in conditions.")
+            if operator.upper() not in ('=', '!=', '<', '>', '<=', '>=', 'LIKE'):
+                raise ValueError(f"Invalid operator '{operator}' in conditions.")
+            where_clauses.append(f"{field_name} {operator} ?")
+            field_type = next(f.type for f in fields(self.model_class) if f.name == field_name)
+            serialized_value = self._serialize_field(value, field_type)
+            params.append(serialized_value)
+
+        where_sql = f" {logic} ".join(where_clauses)
+        query_sql = f"SELECT * FROM {self.table_name} WHERE {where_sql}"
+
+        cursor = self.conn.execute(query_sql, params)
+        rows = cursor.fetchall()
+        return [self._row_to_object(row, self.model_class) for row in rows]
+
     def _row_to_object(self, row: sqlite3.Row, model_class: Type[T]) -> T:
         """Convert a database row to an object of type T."""
         init_args = {}
@@ -110,7 +140,7 @@ class BaseRepository:
             return 'TEXT'
         elif py_type in (bool, 'bool'):
             return 'INTEGER'  # SQLite does not have a separate BOOLEAN type
-        elif isinstance(py_type, Enum):
+        elif inspect.isclass(py_type) and issubclass(py_type, Enum):
             return 'TEXT'
         elif py_type is datetime:
             return 'TEXT'
