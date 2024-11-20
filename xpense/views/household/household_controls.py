@@ -14,6 +14,7 @@ from xpense.database.repository_container import RepositoryContainer
 from xpense.types import DataAggregation, Transaction, Currency, TransactionType, TransactionOperations, \
     DataAggregation
 from xpense.utilities.common import round_to_two_decimals, human_readable_datetime
+from xpense.views.household.transaction_fetcher import TransactionFetcher
 from xpense.views.household.transaction_view import get_transaction_view, TransactionPipe, CURRENCY_TO_ICONS
 from xpense.views.household.transaction_category_button import DEFAULT_EXPENSE_CATEGORIES_WITH_ICONS
 
@@ -42,74 +43,21 @@ def get_main_column() -> ft.Column:
 
 class OverviewSectionCalculator:
     def __init__(self, repository_container: RepositoryContainer, current_datetime: datetime.datetime):
-        self._rc = repository_container
-        self._current_datetime = current_datetime
-
-    def get_expense_transactions(self, aggregation: Optional[DataAggregation] = DataAggregation.MONTHLY):
-        if aggregation == DataAggregation.WEEKLY:
-            current_week_start = self._current_datetime - timedelta(days=self._current_datetime.weekday())
-            current_week_start = current_week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            next_week_start = current_week_start + timedelta(weeks=1)
-            expense_transactions: List[Transaction] = self._rc.transactions.get_by_conditions(
-                conditions={
-                    ("type", "=", TransactionType.EXPENSE),
-                    ("date", '>=', current_week_start),
-                    ("date", '<', next_week_start),
-                },
-                logic='AND'
-            )
-
-        elif aggregation == DataAggregation.YEARLY:
-            current_year = self._current_datetime.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            next_year = current_year + relativedelta(years=1)
-            expense_transactions: List[Transaction] = self._rc.transactions.get_by_conditions(
-                conditions={
-                    ("type", "=", TransactionType.EXPENSE),
-                    ("date", '>=', current_year),
-                    ("date", '<', next_year),
-                },
-                logic='AND'
-            )
-        else:
-            current_month = self._current_datetime.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            next_month = current_month + relativedelta(months=1)
-            expense_transactions: List[Transaction] = self._rc.transactions.get_by_conditions(
-                conditions={
-                    ("type", "=", TransactionType.EXPENSE),
-                    ("date", '>=', current_month),
-                    ("date", '<', next_month),
-                },
-                logic='AND'
-            )
-        return expense_transactions
+        self._transaction_fetcher = TransactionFetcher(repository_container, current_datetime)
 
     def get_total_expenses(self, aggregation: Optional[DataAggregation] = DataAggregation.MONTHLY) -> float:
-        expense_transactions = self.get_expense_transactions(aggregation)
+        expense_transactions = self._transaction_fetcher.get_expense_transactions(aggregation)
         return sum(float(t.amount) for t in expense_transactions)
 
     def get_total_income(self) -> float:
-        # TODO: Add ending date for incomes because they may indeed have an end.
-        income_transactions: List[Transaction] = self._rc.transactions.get_by_conditions(
-            conditions={
-                ("type", "=", TransactionType.INCOME),
-                # ("end_date", '<=', current_month),
-            },
-            logic='AND'
-        )
+        income_transactions = self._transaction_fetcher.get_income_transactions()
         return sum(float(t.amount) for t in income_transactions)
 
     def get_total_allocations(self) -> float:
-        # TODO: Add ending date for allocations because they may indeed have an end.
-        income_transactions: List[Transaction] = self._rc.transactions.get_by_conditions(
-            conditions={
-                ("type", "=", TransactionType.ALLOCATION),
-                # ("end_date", '<=', current_month),
-            },
-            logic='AND'
-        )
-        return sum(float(t.amount) for t in income_transactions)
+        allocation_transactions = self._transaction_fetcher.get_allocation_transactions()
+        return sum(float(t.amount) for t in allocation_transactions)
 
-    def get_unallocated_expenses(self, aggregation: Optional[DataAggregation] = DataAggregation.MONTHLY) -> float:
+    def get_total_unallocated_expenses(self, aggregation: Optional[DataAggregation] = DataAggregation.MONTHLY) -> float:
         """
         Calculate unallocated expenses based on the following rules:
         - For each category:
@@ -118,11 +66,8 @@ class OverviewSectionCalculator:
             - If there is no allocation, all expenses for that category are unallocated.
         """
         unallocated_expenses = 0.0
-        allocations: List[Transaction] = self._rc.transactions.get_by_conditions(
-            conditions={("type", "=", TransactionType.ALLOCATION), },
-            logic='AND'
-        )
-        expenses: List[Transaction] = self.get_expense_transactions(aggregation)
+        allocations: List[Transaction] = self._transaction_fetcher.get_allocation_transactions()
+        expenses: List[Transaction] = self._transaction_fetcher.get_expense_transactions(aggregation)
 
         # Sum allocations and expenses per category.
         allocation_per_category: Dict[str, float] = defaultdict(float)
@@ -143,7 +88,7 @@ class OverviewSectionCalculator:
             if allocation < expense:
                 # Expenses exceed allocation; unallocated expense is the difference.
                 unallocated_expenses += (expense - allocation)
-            else:
+            elif allocation == 0:
                 # No allocation for this category; entire expense is unallocated.
                 unallocated_expenses += expense
 
@@ -152,10 +97,7 @@ class OverviewSectionCalculator:
     def get_total_balance(self, aggregation: Optional[DataAggregation] = DataAggregation.MONTHLY):
         total_income = self.get_total_income()
         total_allocations = self.get_total_allocations()
-        total_unallocated_expenses = self.get_unallocated_expenses(aggregation)
-        print(f"DEBUG: total_income {total_income}")
-        print(f"DEBUG: total_unallocated_expenses {total_unallocated_expenses}")
-        print(f"DEBUG: total_allocations {total_allocations}")
+        total_unallocated_expenses = self.get_total_unallocated_expenses(aggregation)
         return total_income - total_allocations - total_unallocated_expenses
 
 
@@ -174,8 +116,10 @@ class OverviewSection:
         self._income_amount_ref = ft.Ref[ft.Text]()
         self._allocations_amount_ref = ft.Ref[ft.Text]()
         self._build_column_three_amount_texts()
-
         self._set_amounts()
+
+        self._container_first_column_text_label_ref = ft.Ref[ft.Text]()
+        self._first_column_total_balance_text_label_ref = ft.Ref[ft.Text]()
 
     def _build_column_three_amount_texts(self):
         self._income_amount = ft.Text(
@@ -204,9 +148,31 @@ class OverviewSection:
         self._income_amount_ref.current.value = f"€ {self._calculator.get_total_income()}"
         self._allocations_amount_ref.current.value = f"€ {self._calculator.get_total_allocations()}"
 
+    def _determine_first_column_container_label_text(self, data_aggregation: Optional[DataAggregation] = None):
+        if not data_aggregation:
+            data_aggregation = self._data_aggregation
+
+        if data_aggregation == DataAggregation.MONTHLY:
+            aggregation_label = "month"
+        elif data_aggregation == DataAggregation.WEEKLY:
+            aggregation_label = "week"
+        else:
+            aggregation_label = "year"
+        return f"Balance This {aggregation_label.title()}"
+
+    def _determine_first_column_total_balance_label_text(self, data_aggregation: Optional[DataAggregation] = None):
+        total_balance = self._calculator.get_total_balance(data_aggregation)
+        return f"€ {total_balance}"
+
     def on_data_aggregation_change(self, event: ControlEvent):
         new_data_aggregation = DataAggregation.get_aggregation_type(event.control.text)
         self._set_amounts(new_data_aggregation)
+        self._container_first_column_text_label_ref.current.value = self._determine_first_column_container_label_text(
+            new_data_aggregation
+        )
+        self._first_column_total_balance_text_label_ref.current.value = self._determine_first_column_total_balance_label_text(
+            new_data_aggregation
+        )
 
     def _get_wallet_image_container(self) -> ft.Container:
         return ft.Container(
@@ -218,20 +184,24 @@ class OverviewSection:
         )
 
     def _get_first_column_balance_label_container(self) -> ft.Container:
+
         return ft.Container(
             content=ft.Text(
-                "Balance This Month", color=ft.colors.WHITE, size=13, width=120,
+                self._determine_first_column_container_label_text(),
+                color=ft.colors.WHITE, size=13, width=120,
+                ref=self._container_first_column_text_label_ref,
             ),
             padding=ft.padding.only(left=15, top=2),
-            alignment=ft.alignment.top_left
+            alignment=ft.alignment.top_left,
         )
 
     def _get_first_column_balance_container(self) -> ft.Container:
-        total_balance = self._calculator.get_total_balance()
+        label_text = self._determine_first_column_total_balance_label_text()
         return ft.Container(
             content=ft.Text(
-                f"€ {total_balance}", color=ft.colors.WHITE, size=15, weight=ft.FontWeight.BOLD.value,
-                tooltip="Shows overall financial status after accounting for both expenses and allocations."
+                label_text, color=ft.colors.WHITE, size=15, weight=ft.FontWeight.BOLD.value,
+                tooltip="Shows overall financial status after accounting for both expenses and allocations.",
+                ref=self._first_column_total_balance_text_label_ref,
             ),
             padding=ft.padding.only(left=15),
             alignment=ft.alignment.top_left
@@ -579,18 +549,28 @@ class TransactionEditContainer:
 
 
 class TransactionListViewSection:
-    def __init__(self, page: ft.Page, repository_container: RepositoryContainer,
-                 transaction_edit_container: TransactionEditContainer):
+    def __init__(
+            self, page: ft.Page, repository_container: RepositoryContainer,
+            transaction_edit_container: TransactionEditContainer,
+            data_aggregation: DataAggregation,
+            current_datetime: datetime.datetime,
+    ):
         self._page = page
         self._rc = repository_container
         self._transaction_edit_container = transaction_edit_container
+        self._transaction_fetcher = TransactionFetcher(repository_container, current_datetime)
+
+        self._data_aggregation = data_aggregation
 
         self._list_view: Optional[ft.ListView] = None
 
     def on_data_aggregation_change(self, event: ControlEvent):
         self._list_view.controls = []
-        self._populate_list_view(self._list_view, TransactionType.EXPENSE,
-                                 DataAggregation.get_aggregation_type(event.control.text))
+        self._populate_list_view(
+            self._list_view,
+            populate_transaction_type=TransactionType.EXPENSE,
+            data_aggregation=DataAggregation.get_aggregation_type(event.control.text)
+        )
         self._list_view.update()
 
     def on_tab_change(self, event: ControlEvent):
@@ -607,19 +587,22 @@ class TransactionListViewSection:
                 expand=True,
                 on_scroll=(lambda _: self._page.update())
             )
-        self._populate_list_view(self._list_view, TransactionType.EXPENSE)  # The default is to populate expense type.
+        self._populate_list_view(
+            self._list_view,
+            populate_transaction_type=TransactionType.EXPENSE,
+            data_aggregation=self._data_aggregation
+        )
         return self._list_view
 
     def _populate_list_view(
             self, list_view: ft.ListView, populate_transaction_type: TransactionType,
             data_aggregation: Optional[DataAggregation] = DataAggregation.MONTHLY
     ):
-        transactions: List[Transaction] = self._rc.transactions.get_all()
+        transactions: List[Transaction] = self._transaction_fetcher.get_by_type(
+            populate_transaction_type, data_aggregation
+        )
 
         for transaction in transactions:
-            if transaction.type != populate_transaction_type:
-                continue
-
             list_view.controls.append(
                 ft.Container(
                     alignment=ft.alignment.center_left,
@@ -668,7 +651,9 @@ def get_main_container(
 ) -> ft.Container:
     transaction_edit_container = TransactionEditContainer(page=page, repository_container=repository_container)
     transaction_list_view_section = TransactionListViewSection(
-        page=page, repository_container=repository_container, transaction_edit_container=transaction_edit_container)
+        page=page, repository_container=repository_container, transaction_edit_container=transaction_edit_container,
+        data_aggregation=data_aggregation, current_datetime=current_date
+    )
     transaction_type_tabs_section = TransactionTypeTabsSection(
         on_tab_change_func=transaction_list_view_section.on_tab_change
     )
@@ -703,7 +688,6 @@ def get_main_container(
                     alignment=ft.alignment.bottom_right,
                 )
             ],
-            # expand=True,
             alignment=ft.MainAxisAlignment.START,
             spacing=0,
         )
