@@ -57,6 +57,13 @@ class TransactionType(Enum):
                 return transaction_type
         return None
 
+    @classmethod
+    def get_transaction_type_by_index(cls, index: int) -> Self:
+        try:
+            return list(cls)[index]
+        except IndexError:
+            return None
+
 
 class Currency(Enum):
     RON = "ron"

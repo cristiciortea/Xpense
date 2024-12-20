@@ -332,34 +332,48 @@ class DateSection:
 class TransactionTypeTabsSection:
     def __init__(self, on_tab_change_func: Callable[[ControlEvent], None]):
         self._on_tab_change_func = on_tab_change_func
+        self.default_tab_index = 0
+
+        self.tabs: Optional[ft.Tabs] = None
+        self.tab_controls: Optional[List[ft.Tabs]] = None
+
+    def get_current_tab_index(self) -> int:
+        if not self.tabs:
+            return self.default_tab_index
+        return self.tabs.selected_index
 
     def get(self) -> ft.Tabs:
-        return ft.Tabs(
-            selected_index=0,
-            animation_duration=50,
-            tabs=[
+        if not self.tabs:
+            self.tab_controls = [
                 ft.Tab(text=text.value.capitalize())
                 for text in TransactionType
-            ],
-            top=True,
-            tab_alignment=ft.TabAlignment.FILL,
-            padding=0,
-            divider_color=ft.colors.BLACK12,
-            on_change=self._on_tab_change_func,
-            indicator_tab_size=True,
-            indicator_thickness=True,
-        )
+            ]
+            self.tabs = ft.Tabs(
+                selected_index=self.default_tab_index,
+                animation_duration=50,
+                tabs=self.tab_controls,
+                top=True,
+                tab_alignment=ft.TabAlignment.FILL,
+                padding=0,
+                divider_color=ft.colors.BLACK12,
+                on_change=self._on_tab_change_func,
+                indicator_tab_size=True,
+                indicator_thickness=True,
+            )
+        return self.tabs
 
 
 class FloatingButtonSection:
     def __init__(
             self, page: ft.Page, repository_container: RepositoryContainer, current_date: datetime.datetime,
             setup_currency_type: Currency,
+            transaction_type_tabs_section: TransactionTypeTabsSection
     ):
         self._page = page
         self._current_date = current_date
         self._setup_currency_type = setup_currency_type
 
+        self._transaction_type_tabs_section = transaction_type_tabs_section
         self._transaction = self._get_default_transaction()
         self._transaction_pipe = TransactionPipe(transaction=self._transaction)
         self._view = get_transaction_view(
@@ -406,8 +420,11 @@ class FloatingButtonSection:
         self._page.update()
 
     def _get_default_transaction(self):
+        transaction_type = TransactionType.get_transaction_type_by_index(
+            self._transaction_type_tabs_section.get_current_tab_index()
+        )
         return Transaction(
-            type=TransactionType.EXPENSE, date=self._current_date, currency=self._setup_currency_type,
+            type=transaction_type, date=self._current_date, currency=self._setup_currency_type,
             category="other", aggregation=DataAggregation.MONTHLY,
         )
 
@@ -599,7 +616,12 @@ def get_main_container(
         page, current_date, data_aggregation,
         data_aggregation_change_callbacks=(
             transaction_list_view_section.on_data_aggregation_change,
-            overview_section.on_data_aggregation_change)
+            overview_section.on_data_aggregation_change
+        )
+    )
+    floating_button_section = FloatingButtonSection(
+        page, repository_container, current_date, setup_currency_type,
+        transaction_type_tabs_section=transaction_type_tabs_section
     )
 
     return ft.Container(
@@ -616,9 +638,7 @@ def get_main_container(
                 ft.Stack(
                     controls=[
                         transaction_list_view_section.get(),
-                        FloatingButtonSection(
-                            page, repository_container, current_date, setup_currency_type
-                        ).get(),
+                        floating_button_section.get(),
                     ],
                     expand=True,
                     alignment=ft.alignment.bottom_right,
