@@ -129,6 +129,7 @@ class OverviewSection:
             ),
             padding=ft.padding.only(left=15, top=2),
             alignment=ft.alignment.top_left,
+            height=35,
         )
 
     def _get_first_column_balance_container(self) -> ft.Container:
