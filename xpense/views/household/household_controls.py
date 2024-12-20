@@ -461,8 +461,11 @@ class TransactionEditContainer:
         self._page = page
         self._rc = repository_container
 
+        self._transaction_list_view_section: Optional[TransactionListViewSection] = None
+
     def _click_go_back_button(self):
         self._page.views.pop()
+        self._transaction_list_view_section.reset_list_view()
         self._page.update()
 
     def _click_save_button(self, transaction_pipe: TransactionPipe):
@@ -502,6 +505,9 @@ class TransactionEditContainer:
         )
         self._page.views.append(view)
         self._page.update()
+
+    def set_transaction_list_view_section(self, instance: "TransactionListViewSection"):
+        self._transaction_list_view_section = instance
 
 
 class TransactionListViewSection:
@@ -628,6 +634,7 @@ def get_main_container(
         on_tab_change_func=transaction_list_view_section.on_tab_change
     )
     transaction_list_view_section.set_transaction_type_tabs_section(transaction_type_tabs_section)
+    transaction_edit_container.set_transaction_list_view_section(transaction_list_view_section)
 
     overview_section = OverviewSection(repository_container=repository_container, current_datetime=current_date,
                                        data_aggregation=data_aggregation)
