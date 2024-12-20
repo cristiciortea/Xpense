@@ -16,11 +16,11 @@ def get_header_current_day_button(current_day: int, func: Callable) -> ft.TextBu
 
         ),
         style=ft.ButtonStyle(
-            shape=ft.BeveledRectangleBorder(radius=13),
-            color=ft.colors.BLACK,
+            shape=ft.StadiumBorder(),
+            color=ft.colors.BLUE_200,
             bgcolor=ft.colors.TRANSPARENT,
-            surface_tint_color=ft.colors.BLACK,
-            side=ft.BorderSide(width=2, color=ft.colors.BLACK26)
+            surface_tint_color=ft.colors.BLUE_200,
+            side=ft.BorderSide(width=2, color=ft.colors.BLUE_GREY_200)
         ),
         on_click=func,
     )
@@ -41,5 +41,5 @@ def get_header_calendar_icon(page: ft.Page, on_date_change: Callable[[datetime.d
             size=15,
             opacity=0.65
         ),
-        on_click=lambda _: date_picker.pick_date()
+        on_click=lambda _: page.open(date_picker)
     )

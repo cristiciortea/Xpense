@@ -264,13 +264,13 @@ class CalendarNavigator:
         self.header_text = ft.Text(
             value=self.start_date.strftime("%B %d, %Y"),
             width=225,
-            size=13,
+            size=15,
             color=ft.colors.BLACK54,
             weight=ft.FontWeight.W_400
         )
 
         self.btn_container: ft.Row | None = None
-        self.calendar: ft.Container | None = None
+        self.calendar_container: ft.Container | None = None
 
         self.page = page
 
@@ -293,14 +293,12 @@ class CalendarNavigator:
             )
         return self.btn_container
 
-    def build_calendar_container(self) -> ft.Container:
-        if self.calendar is None:
+    def _get_calendar_container(self) -> ft.Container:
+        if self.calendar_container is None:
             self.build_button_container()
-            self.calendar = ft.Container(
-                width=320,
+            self.calendar_container = ft.Container(
                 height=450,
                 bgcolor=ft.colors.WHITE70,
-                border_radius=8,
                 animate=300,
                 clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 alignment=ft.alignment.center,
@@ -308,29 +306,48 @@ class CalendarNavigator:
                     alignment=ft.MainAxisAlignment.START,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Divider(height=50, color=ft.colors.TRANSPARENT),
+                        self._get_calendar_header(),
                         self.calendar_grid,
                         ft.Divider(height=40, color=ft.colors.TRANSPARENT),
                         self.btn_container
                     ]
                 )
             )
-        return self.calendar
+        return self.calendar_container
 
     def _toggle_calendar_expansion(self, _: ft.ControlEvent) -> None:
-        if self.calendar.height == 45:
-            self.calendar.height = 450
+        if self.calendar_container.height == 46:
+            self.calendar_container.height = 450
         else:
-            self.calendar.height = 45
-        self.calendar.update()
+            self.calendar_container.height = 46
+        self.calendar_container.update()
 
-    def get_calendar_header(self):
+    def _get_header_right_side(self) -> ft.Row:
+        return ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+            vertical_alignment=ft.alignment.center_right,
+            width=100,
+            spacing=0,
+            controls=[
+                ft.Container(
+                    height=36,
+                    border=ft.border.only(left=ft.BorderSide(0.9, ft.colors.BLACK26)),
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.only(right=7)
+                ),
+                get_header_current_day_button(
+                    self.start_date.day,
+                    lambda _: self.calendar_builder.go_today()
+                ),
+                get_header_calendar_icon(self.page, self.calendar_builder.pick_date)
+            ]
+        )
+
+    def _get_calendar_header(self):
         return ft.Container(
             on_click=lambda event: self._toggle_calendar_expansion(event),
-            width=320,
-            height=45,
-            border_radius=8,
-            bgcolor=ft.colors.GREY_200,
+            height=47,
+            bgcolor=ft.colors.GREY_50,
             padding=ft.padding.only(left=15, right=5),
             alignment=ft.alignment.center,
             content=ft.Row(
@@ -338,34 +355,43 @@ class CalendarNavigator:
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     self.header_text,
-                    ft.Container(
-                        height=32,
-                        border=ft.border.only(left=ft.BorderSide(0.9, ft.colors.BLACK26)),
-                        alignment=ft.alignment.center,
-                        padding=ft.padding.only(right=7)
-                    ),
-                    get_header_current_day_button(
-                        self.start_date.day,
-                        lambda _: self.calendar_builder.go_today()
-                    ),
-                    get_header_calendar_icon(self.page, self.calendar_builder.pick_date)
+                    self._get_header_right_side()
                 ]
             ),
         )
 
-    def build(self) -> ft.Stack:
-        self.build_calendar_container()
-        return ft.Stack(
-            width=400,
+    def get(self) -> ft.Column:
+        return ft.Column(
+            alignment=ft.MainAxisAlignment.START,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             height=700,
+            spacing=0,
             controls=[
-                self.calendar,
-                self.get_calendar_header(),
+                self._get_calendar_container(),
             ],
         )
 
 
+def get_main_container(page: ft.Page, start_date: datetime.date) -> ft.Container:
+    calendar_navigator = CalendarNavigator(page, start_date)
+
+    return ft.Container(
+        alignment=ft.alignment.top_left,
+        expand=True,
+        padding=0,
+        margin=0,
+        bgcolor=ft.colors.WHITE70,
+        content=ft.Column(
+            controls=[
+                calendar_navigator.get()
+            ],
+            alignment=ft.MainAxisAlignment.START,
+            spacing=0,
+        )
+    )
+
+
 def get_calendar_controls(page: ft.Page, start_date: datetime.date) -> List[ft.Control]:
     return [
-        CalendarNavigator(page, start_date).build()
+        get_main_container(page, start_date)
     ]
