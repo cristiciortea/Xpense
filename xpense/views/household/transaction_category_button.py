@@ -94,7 +94,7 @@ class TransactionCategoryButton:
         self._page.open(self._dialog_modal)
 
     def on_click_category(self, event: ft.ControlEvent):
-        self._category_label_ref.current = event.control.data.capitalize()
+        self._category_label_ref.current.value = event.control.data.capitalize()
         self._transaction.category = event.control.data
         self._page.close(self._dialog_modal)
         self._page.update()
