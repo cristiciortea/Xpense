@@ -367,12 +367,14 @@ class FloatingButtonSection:
     def __init__(
             self, page: ft.Page, repository_container: RepositoryContainer, current_date: datetime.datetime,
             setup_currency_type: Currency,
-            transaction_type_tabs_section: TransactionTypeTabsSection
+            transaction_type_tabs_section: TransactionTypeTabsSection,
+            transaction_list_view_section: "TransactionListViewSection"
     ):
         self._page = page
         self._current_date = current_date
         self._setup_currency_type = setup_currency_type
 
+        self._transaction_list_view_section = transaction_list_view_section
         self._transaction_type_tabs_section = transaction_type_tabs_section
         self._transaction = self._get_default_transaction()
         self._transaction_pipe = TransactionPipe(transaction=self._transaction)
@@ -412,6 +414,7 @@ class FloatingButtonSection:
 
     def _click_go_back_button(self):
         self._page.views.pop()
+        self._transaction_list_view_section.reset_list_view()
         self._page.update()
 
     def _click_floating_button(self):
@@ -516,6 +519,7 @@ class TransactionListViewSection:
         self._data_aggregation = data_aggregation
 
         self._list_view: Optional[ft.ListView] = None
+        self._transaction_type_tabs_section: Optional[TransactionTypeTabsSection] = None
 
     def on_data_aggregation_change(self, event: ControlEvent):
         self._list_view.controls = []
@@ -533,6 +537,20 @@ class TransactionListViewSection:
         self._populate_list_view(self._list_view, selected_transaction_type)
         self._list_view.update()
 
+    def reset_list_view(self):
+        if self._transaction_type_tabs_section:
+            transaction_type = TransactionType.get_transaction_type_by_index(
+                self._transaction_type_tabs_section.get_current_tab_index())
+        else:
+            transaction_type = TransactionType.EXPENSE
+
+        self._list_view.controls = []
+        self._populate_list_view(
+            self._list_view,
+            populate_transaction_type=transaction_type,
+            data_aggregation=self._data_aggregation
+        )
+
     def get(self):
         if not self._list_view:
             self._list_view = ft.ListView(
@@ -540,11 +558,7 @@ class TransactionListViewSection:
                 expand=True,
                 on_scroll=(lambda _: self._page.update())
             )
-        self._populate_list_view(
-            self._list_view,
-            populate_transaction_type=TransactionType.EXPENSE,
-            data_aggregation=self._data_aggregation
-        )
+        self.reset_list_view()
         return self._list_view
 
     def _populate_list_view(
@@ -594,6 +608,9 @@ class TransactionListViewSection:
                 )
             )
 
+    def set_transaction_type_tabs_section(self, instance: TransactionTypeTabsSection):
+        self._transaction_type_tabs_section = instance
+
 
 def get_main_container(
         page: ft.Page,
@@ -610,6 +627,8 @@ def get_main_container(
     transaction_type_tabs_section = TransactionTypeTabsSection(
         on_tab_change_func=transaction_list_view_section.on_tab_change
     )
+    transaction_list_view_section.set_transaction_type_tabs_section(transaction_type_tabs_section)
+
     overview_section = OverviewSection(repository_container=repository_container, current_datetime=current_date,
                                        data_aggregation=data_aggregation)
     date_section = DateSection(
@@ -621,7 +640,8 @@ def get_main_container(
     )
     floating_button_section = FloatingButtonSection(
         page, repository_container, current_date, setup_currency_type,
-        transaction_type_tabs_section=transaction_type_tabs_section
+        transaction_type_tabs_section=transaction_type_tabs_section,
+        transaction_list_view_section=transaction_list_view_section
     )
 
     return ft.Container(
