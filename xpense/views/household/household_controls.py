@@ -528,10 +528,12 @@ class TransactionListViewSection:
         self._transaction_type_tabs_section: Optional[TransactionTypeTabsSection] = None
 
     def on_data_aggregation_change(self, event: ControlEvent):
+        transaction_type = self._get_current_transaction_type()
+
         self._list_view.controls = []
         self._populate_list_view(
             self._list_view,
-            populate_transaction_type=TransactionType.EXPENSE,
+            populate_transaction_type=transaction_type,
             data_aggregation=DataAggregation.get_aggregation_type(event.control.text)
         )
         self._list_view.update()
@@ -544,12 +546,7 @@ class TransactionListViewSection:
         self._list_view.update()
 
     def reset_list_view(self):
-        if self._transaction_type_tabs_section:
-            transaction_type = TransactionType.get_transaction_type_by_index(
-                self._transaction_type_tabs_section.get_current_tab_index())
-        else:
-            transaction_type = TransactionType.EXPENSE
-
+        transaction_type = self._get_current_transaction_type()
         self._list_view.controls = []
         self._populate_list_view(
             self._list_view,
@@ -616,6 +613,14 @@ class TransactionListViewSection:
 
     def set_transaction_type_tabs_section(self, instance: TransactionTypeTabsSection):
         self._transaction_type_tabs_section = instance
+
+    def _get_current_transaction_type(self):
+        if self._transaction_type_tabs_section:
+            transaction_type = TransactionType.get_transaction_type_by_index(
+                self._transaction_type_tabs_section.get_current_tab_index())
+        else:
+            transaction_type = TransactionType.EXPENSE
+        return transaction_type
 
 
 def get_main_container(
