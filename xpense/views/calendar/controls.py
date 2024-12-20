@@ -3,6 +3,7 @@ import datetime
 from typing import List, Optional, Callable, Tuple
 
 import flet as ft
+from flet_core import IconButton
 
 from xpense.utilities.calendar import get_sign
 from xpense.views.calendar.components import get_header_current_day_button, get_header_calendar_icon
@@ -21,35 +22,49 @@ class CalendarBuilder:
 
         self._date_clicks: List[ft.Container] = []
 
-        self._calendar_grid: ft.Column | None = None
+        self._calendar_grid: Optional[ft.Column] = None
 
-    def build_calendar_grid(self) -> None:
-        if self._calendar_grid is not None:
+    def _build_calendar_grid(self):
+        if self._calendar_grid:
             return
+
         self._calendar_grid = ft.Column(
-            wrap=True,
-            alignment=ft.MainAxisAlignment.CENTER,
+            alignment=ft.MainAxisAlignment.START,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-    def _reset_calendar_grid_controls(self) -> None:
+    def _reset_calendar_grid_controls(self):
         self._calendar_grid.controls = []
 
-    def _get_month_label(self) -> ft.Text:
-        return ft.Text(
+    def _get_navigation_buttons(self) -> tuple[IconButton, IconButton]:
+        before_button = PaginationButton(
+            "before",
+            lambda event: self.shift(months=-1)
+        ).build()
+        next_button = PaginationButton(
+            "next",
+            lambda event: self.shift(months=1)
+        ).build()
+        return before_button, next_button
+
+    def _get_month_label(self) -> ft.Container:
+        return ft.Container(width=115,content=ft.Text(
             f"{calendar.month_name[self._current_month]} {self._current_year}",
             size=14,
             weight=ft.FontWeight.BOLD,
-        )
-
-    @staticmethod
-    def _get_basic_month_grid(month_label: ft.Text) -> ft.Column:
-        month_grid = ft.Column(alignment=ft.MainAxisAlignment.CENTER)
-        month_grid.controls.append(ft.Row(
-            alignment=ft.MainAxisAlignment.START,
-            controls=[month_label]
         ))
-        return month_grid
+
+    def _get_basic_month_grid(self, month_label: ft.Container) -> ft.Container:
+        before_button, next_button = self._get_navigation_buttons()
+        return ft.Container(
+            content=ft.Row(
+                controls=[before_button, month_label, next_button],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+            ),
+            alignment=ft.alignment.center,
+            height=50,
+        )
 
     @staticmethod
     def _get_weekday_labels() -> List[ft.Container]:
@@ -66,31 +81,34 @@ class CalendarBuilder:
             ) for weekday in tuple(calendar.day_abbr)
         ]
 
-    def build_calendar(self) -> None:
-        self.build_calendar_grid()
+    def _build_calendar(self) -> None:
+        self._build_calendar_grid()
         self._reset_calendar_grid_controls()
 
         # This is the label that goes at the top of the
         # weekday labels.
         month_label = self._get_month_label()
-        # The main grid on which the calendar is built.
         month_grid = self._get_basic_month_grid(month_label)
+        self._calendar_grid.controls.append(month_grid)
 
-        weekday_labels = self._get_weekday_labels()
         # Build the weekday row which is singular, and it looks like
         # Mon Tue Wed Thu Fri Sat Sun.
-        weekday_row = ft.Row(controls=weekday_labels)
-
-        # Add the weekday row into the main grid.
-        month_grid.controls.append(weekday_row)
-        # Add the main grid to the root calendar grid.
-        self._calendar_grid.controls = [month_grid]
+        weekday_labels = self._get_weekday_labels()
+        weekday_row = ft.Row(
+            controls=weekday_labels,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            alignment=ft.MainAxisAlignment.CENTER,
+        )
+        self._calendar_grid.controls.append(weekday_row)
 
         # Add the week containers with each day of the month
         # to the root calendar grid.
         month_matrix = calendar.monthcalendar(self._current_year, self._current_month)
         for week in month_matrix:
-            week_container = ft.Row()
+            week_container = ft.Row(
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+            )
             for day in week:
                 day_container = self._get_day_container(day)
                 day_label = ft.Text(str(day), size=12) if day != 0 else None
@@ -106,9 +124,14 @@ class CalendarBuilder:
                 week_container.controls.append(day_container)
             self._calendar_grid.controls.append(week_container)
 
-    def build(self) -> ft.Column:
-        self.build_calendar()
-        return self._calendar_grid
+    def get(self):  # -> ft.Column:
+        self._build_calendar()
+        return ft.Container(
+            alignment=ft.alignment.top_left,
+            bgcolor=ft.colors.AMBER_100,
+            height=345,
+            content=self._calendar_grid,
+        )
 
     def _sync_current_dates(self) -> None:
         self._current_year_backup = self._current_year
@@ -119,7 +142,7 @@ class CalendarBuilder:
 
     def reset_calendar(self) -> None:
         if self._calendar_needs_reset():
-            self.build_calendar()
+            self._build_calendar()
             self._calendar_grid.update()
             self._date_clicks = []
             self._sync_current_dates()
@@ -245,8 +268,8 @@ class PaginationButton:
             height=38,
             on_click=self.func,
             style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=6),
-                bgcolor=ft.colors.GREY_200
+                # shape=ft.RoundedRectangleBorder(radius=6),
+                bgcolor=ft.colors.TRANSPARENT
             ),
         )
 
@@ -259,7 +282,6 @@ class CalendarNavigator:
             self.start_date = start_date
 
         self.calendar_builder = CalendarBuilder(self.start_date)
-        self.calendar_grid = self.calendar_builder.build()
 
         self.header_text = ft.Text(
             value=self.start_date.strftime("%B %d, %Y"),
@@ -269,57 +291,33 @@ class CalendarNavigator:
             weight=ft.FontWeight.W_400
         )
 
-        self.btn_container: ft.Row | None = None
         self.calendar_container: ft.Container | None = None
 
         self.page = page
 
-    def build_button_container(self) -> ft.Row:
-        if self.btn_container is None:
-            before_button = PaginationButton(
-                "before",
-                lambda event: self.calendar_builder.shift(months=-1)
-            ).build()
-            next_button = PaginationButton(
-                "next",
-                lambda event: self.calendar_builder.shift(months=1)
-            ).build()
-            self.btn_container = ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                controls=[
-                    before_button,
-                    next_button
-                ]
-            )
-        return self.btn_container
-
     def _get_calendar_container(self) -> ft.Container:
         if self.calendar_container is None:
-            self.build_button_container()
             self.calendar_container = ft.Container(
                 height=450,
-                bgcolor=ft.colors.WHITE70,
+                bgcolor=ft.colors.TRANSPARENT,
                 animate=300,
                 clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                alignment=ft.alignment.center,
+                alignment=ft.alignment.top_left,
                 content=ft.Column(
-                    alignment=ft.MainAxisAlignment.START,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=0,
                     controls=[
                         self._get_calendar_header(),
-                        self.calendar_grid,
-                        ft.Divider(height=40, color=ft.colors.TRANSPARENT),
-                        self.btn_container
+                        self.calendar_builder.get(),
                     ]
                 )
             )
         return self.calendar_container
 
     def _toggle_calendar_expansion(self, _: ft.ControlEvent) -> None:
-        if self.calendar_container.height == 46:
+        if self.calendar_container.height == 47:
             self.calendar_container.height = 450
         else:
-            self.calendar_container.height = 46
+            self.calendar_container.height = 47
         self.calendar_container.update()
 
     def _get_header_right_side(self) -> ft.Row:
@@ -362,9 +360,6 @@ class CalendarNavigator:
 
     def get(self) -> ft.Column:
         return ft.Column(
-            alignment=ft.MainAxisAlignment.START,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            height=700,
             spacing=0,
             controls=[
                 self._get_calendar_container(),
